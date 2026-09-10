@@ -47,6 +47,9 @@ chezmoi diff
 chezmoi apply
 ```
 
+chezmoi uses umask `022`: managed regular files use `0644`, and managed directories and executables use `0755`,
+regardless of your shell's umask.
+
 Log in again to keep `~/.local/bin` on PATH; run `zellij` to start a terminal session.
 Codex CLI 0.154.0 installs as your normal user without sudo or Node.js. Enable device code login in your
 ChatGPT security settings or workspace permissions, then run `codex login --device-auth` on the server.
