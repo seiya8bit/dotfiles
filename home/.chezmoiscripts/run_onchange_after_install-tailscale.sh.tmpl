@@ -1,0 +1,13 @@
+{{ if and (eq .chezmoi.os "linux") (eq .chezmoi.osRelease.id "ubuntu") -}}
+#!/usr/bin/env bash
+set -euo pipefail
+
+if command -v tailscale >/dev/null 2>&1; then
+    echo 'Tailscale is already installed; keeping the existing version.'
+    exit 0
+fi
+
+installer=$(curl --fail --location --silent --show-error https://tailscale.com/install.sh)
+TRACK=stable sh <<< "$installer"
+tailscale version
+{{ end -}}

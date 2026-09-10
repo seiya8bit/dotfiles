@@ -1,0 +1,26 @@
+[init]
+    defaultBranch = main
+
+[user]
+    name = {{ .gitName | quote }}
+    email = {{ .gitEmail | quote }}
+    useConfigOnly = true
+
+[core]
+    autocrlf = false
+    quotePath = false
+
+[fetch]
+    prune = true
+
+[pull]
+    ff = only
+
+[push]
+    autoSetupRemote = true
+
+[merge]
+    conflictStyle = zdiff3
+
+[include]
+    path = .gitconfig.local

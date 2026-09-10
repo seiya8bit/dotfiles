@@ -1,0 +1,26 @@
+{{ if and (eq .chezmoi.os "linux") (eq .chezmoi.osRelease.id "ubuntu") -}}
+{{ $releases := dict
+    "amd64" (dict "arch" "x86_64"
+        "zellijSha" "40bcc2e03f5d5ae8e054e39f676081fe12ab70871506996ba595834c3718eefc"
+        "codexSha" "d7e18b2597ae8f242f5f31ee9e90deef48dbc9edd634d9868fb6435d08c07f02")
+    "arm64" (dict "arch" "aarch64"
+        "zellijSha" "05f0802afadd53f8db9514e7cae53c9ae8432fed1b35b8294aa816ee3044a16b"
+        "codexSha" "583b48df32804213bdcd338c2e5adb06b34340821fa757a726cc0a524fa33c27") -}}
+{{ $release := index $releases .chezmoi.arch -}}
+{{ if not $release -}}
+{{ fail "Zellij and Codex require Ubuntu amd64 or arm64" -}}
+{{ end -}}
+[".local/bin/zellij"]
+type = "archive-file"
+url = "https://github.com/zellij-org/zellij/releases/download/v0.45.1/zellij-{{ $release.arch }}-unknown-linux-musl.tar.gz"
+path = "zellij"
+executable = true
+checksum.sha256 = "{{ $release.zellijSha }}"
+
+[".local/bin/codex"]
+type = "archive-file"
+url = "https://github.com/openai/codex/releases/download/rust-v0.154.0/codex-{{ $release.arch }}-unknown-linux-musl.tar.gz"
+path = "codex-{{ $release.arch }}-unknown-linux-musl"
+executable = true
+checksum.sha256 = "{{ $release.codexSha }}"
+{{ end -}}

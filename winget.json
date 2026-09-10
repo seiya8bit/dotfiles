@@ -1,0 +1,62 @@
+{
+  "$schema": "https://aka.ms/winget-packages.schema.2.0.json",
+  "Sources": [
+    {
+      "Packages": [
+        { "PackageIdentifier": "Git.Git" },
+        { "PackageIdentifier": "GitHub.cli" },
+        { "PackageIdentifier": "Microsoft.VisualStudioCode" },
+        { "PackageIdentifier": "DEVCOM.JetBrainsMonoNerdFont" },
+        { "PackageIdentifier": "Docker.DockerDesktop" },
+        { "PackageIdentifier": "Microsoft.WSL" },
+
+        { "PackageIdentifier": "Microsoft.PowerShell" },
+        { "PackageIdentifier": "Starship.Starship" },
+        { "PackageIdentifier": "ajeetdsouza.zoxide" },
+
+        { "PackageIdentifier": "OpenAI.Codex" },
+
+        { "PackageIdentifier": "Google.Chrome" },
+        { "PackageIdentifier": "Discord.Discord" },
+        { "PackageIdentifier": "SlackTechnologies.Slack" },
+
+        { "PackageIdentifier": "Notion.Notion" },
+
+        { "PackageIdentifier": "Gyan.FFmpeg" },
+        { "PackageIdentifier": "BlenderFoundation.Blender" },
+        { "PackageIdentifier": "Celsys.ClipStudioPaint" },
+        { "PackageIdentifier": "Cockos.REAPER" },
+        { "PackageIdentifier": "Bambulab.Bambustudio" },
+
+        { "PackageIdentifier": "Valve.Steam" },
+        { "PackageIdentifier": "EpicGames.EpicGamesLauncher" },
+        { "PackageIdentifier": "Libretro.RetroArch" },
+        { "PackageIdentifier": "Amazon.Kindle" },
+
+        { "PackageIdentifier": "Microsoft.PowerToys" },
+        { "PackageIdentifier": "LIGHTNINGUK.ImgBurn" },
+        { "PackageIdentifier": "Rufus.Rufus" },
+
+        { "PackageIdentifier": "twpayne.chezmoi" },
+        { "PackageIdentifier": "Tailscale.Tailscale" }
+      ],
+      "SourceDetails": {
+        "Name": "winget",
+        "Identifier": "Microsoft.Winget.Source_8wekyb3d8bbwe",
+        "Argument": "https://cdn.winget.microsoft.com/cache",
+        "Type": "Microsoft.PreIndexed.Package"
+      }
+    },
+    {
+      "Packages": [
+        { "PackageIdentifier": "9PLM9XGG6VKS" }
+      ],
+      "SourceDetails": {
+        "Name": "msstore",
+        "Identifier": "StoreEdgeFD",
+        "Argument": "https://storeedgefd.dsx.mp.microsoft.com/v9.0",
+        "Type": "Microsoft.Rest"
+      }
+    }
+  ]
+}
