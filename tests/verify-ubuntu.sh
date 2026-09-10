@@ -137,8 +137,7 @@ done
 "${chezmoi[@]}" apply --dry-run > /dev/null
 for binary in "${binaries[@]}"; do test ! -e "$binary"; done
 "${chezmoi[@]}" apply
-test "$(stat -c %a "$destination/.local/bin")" = 755
-for binary in "${binaries[@]}"; do test "$(stat -c %a "$binary")" = 755; done
+for path in "$destination/.local/bin" "${binaries[@]}"; do test "$(stat -c %a "$path")" = 755; done
 test "$("${binaries[0]}" --version)" = 'zellij 0.45.1'
 test "$(HOME="$destination" CODEX_HOME="$destination/.codex" "${binaries[1]}" --version)" = 'codex-cli 0.154.0'
 HTTPS_PROXY=http://127.0.0.1:1 "${chezmoi[@]}" apply
