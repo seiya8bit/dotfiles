@@ -5,6 +5,8 @@ trap 'echo "Ubuntu verification failed at line $LINENO" >&2' ERR
 repository=$(cd "$(dirname "$0")/.." && pwd)
 chezmoi_bin=$(command -v chezmoi)
 shellcheck "$repository/tests/"*.sh
+# Exercise Ubuntu's group-writable shell default with an existing 0755 bin directory.
+umask 002
 
 temporary=$(mktemp -d)
 trap 'rm -rf "$temporary"' EXIT
@@ -13,7 +15,8 @@ destination="$temporary/home with spaces"
 chezmoi=("$chezmoi_bin" --config "$temporary/config.toml" --destination "$destination"
     --persistent-state "$temporary/state.boltdb" --cache "$temporary/cache" --no-tty --no-pager)
 config_only=(--exclude 'scripts,externals')
-mkdir -p "$checkout" "$destination" "$temporary/bin"
+mkdir -p "$checkout" "$destination/.local/bin" "$temporary/bin"
+chmod 755 "$destination/.local" "$destination/.local/bin"
 cp "$repository/.chezmoiroot" "$repository/.chezmoiversion" "$checkout/"
 cp -R "$repository/home" "$checkout/home"
 "${chezmoi[@]}" init --source "$checkout" --promptString 'Git name=Test User,Git email=test@example.invalid'
@@ -73,6 +76,7 @@ export PATH="$temporary/bin:$PATH"
 "${chezmoi[@]}" apply --dry-run "${config_only[@]}"
 test ! -e "$destination/.gitconfig"
 "${chezmoi[@]}" apply "${config_only[@]}"
+test "$(stat -c %a "$destination/.gitconfig")" = 644
 for binary in "${binaries[@]}"; do test ! -e "$binary"; done
 test ! -e "$destination/Documents"
 git_config=(git config --file "$destination/.gitconfig" --includes)
@@ -133,7 +137,8 @@ done
 "${chezmoi[@]}" apply --dry-run > /dev/null
 for binary in "${binaries[@]}"; do test ! -e "$binary"; done
 "${chezmoi[@]}" apply
-for binary in "${binaries[@]}"; do test -x "$binary"; done
+test "$(stat -c %a "$destination/.local/bin")" = 755
+for binary in "${binaries[@]}"; do test "$(stat -c %a "$binary")" = 755; done
 test "$("${binaries[0]}" --version)" = 'zellij 0.45.1'
 test "$(HOME="$destination" CODEX_HOME="$destination/.codex" "${binaries[1]}" --version)" = 'codex-cli 0.154.0'
 HTTPS_PROXY=http://127.0.0.1:1 "${chezmoi[@]}" apply

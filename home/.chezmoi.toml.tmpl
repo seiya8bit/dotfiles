@@ -5,6 +5,7 @@
 {{- end -}}
 sourceDir = {{ .chezmoi.workingTree | quote }}
 lessInteractive = true
+umask = 0o022
 
 [data]
 gitName = {{ $gitName | quote }}
