@@ -63,6 +63,7 @@ function winget.exe {
     Assert ($LASTEXITCODE -eq 0 -and ![IO.File]::Exists($gitconfig)) 'Preview changed the destination.'
     & $chezmoi @options apply --exclude scripts,externals
     Assert ($LASTEXITCODE -eq 0 -and ![IO.File]::Exists($imports)) 'Configuration-only apply installed apps.'
+    Assert (![IO.File]::Exists((Join-Path $destination '.bash_aliases'))) 'Ubuntu aliases were applied on Windows.'
     Assert ((& git config --file $gitconfig --get user.name) -ceq $name) 'Git name was not quoted correctly.'
     Assert ((& git config --file $gitconfig --get user.email) -ceq 'test@example.invalid') 'Git email changed.'
     $expectedGit = [IO.File]::ReadAllText($gitconfig)
@@ -127,6 +128,7 @@ function winget.exe {
     [IO.File]::WriteAllText($personal, "[user]`n    name = Local User`n    email = local@example.invalid`n")
     $preserved = @{
         '.gitconfig.local' = [IO.File]::ReadAllText($personal)
+        '.bash_aliases' = '# Unmanaged aliases'
         'Documents/PowerShell/Microsoft.PowerShell_profile.ps1' = '# Personal console settings'
         'Documents/PowerShell/Microsoft.VSCode_profile.ps1' = '# Personal VS Code settings'
         'keep' = 'unrelated'
