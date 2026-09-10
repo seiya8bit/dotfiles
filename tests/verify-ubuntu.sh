@@ -77,6 +77,7 @@ export PATH="$temporary/bin:$PATH"
 test ! -e "$destination/.gitconfig"
 "${chezmoi[@]}" apply "${config_only[@]}"
 test "$(stat -c %a "$destination/.gitconfig")" = 644
+test "$(stat -c %a "$destination/.bash_aliases")" = 644
 for binary in "${binaries[@]}"; do test ! -e "$binary"; done
 test ! -e "$destination/Documents"
 git_config=(git config --file "$destination/.gitconfig" --includes)
@@ -98,7 +99,7 @@ cp -R "$destination/.codex" "$temporary/expected-codex"
 
 # Reject every managed file and ancestor collision before writing any configuration.
 mkdir "$temporary/link-target"
-for relative in .gitconfig .local .local/bin .local/bin/zellij .local/bin/codex; do
+for relative in .bash_aliases .gitconfig .local .local/bin .local/bin/zellij .local/bin/codex; do
     conflict="$temporary/conflict-home/$relative"
     mkdir -p "$(dirname "$conflict")"
     for kind in link collision; do
@@ -139,6 +140,8 @@ for binary in "${binaries[@]}"; do test ! -e "$binary"; done
 "${chezmoi[@]}" apply
 for path in "$destination/.local/bin" "${binaries[@]}"; do test "$(stat -c %a "$path")" = 755; done
 test "$("${binaries[0]}" --version)" = 'zellij 0.45.1'
+test "$(HOME="$destination" PATH="$destination/.local/bin:$PATH" bash --noprofile --rcfile /etc/skel/.bashrc \
+    -ic 'zj --version' 2>"$temporary/bash.log")" = 'zellij 0.45.1'
 test "$(HOME="$destination" CODEX_HOME="$destination/.codex" "${binaries[1]}" --version)" = 'codex-cli 0.154.0'
 HTTPS_PROXY=http://127.0.0.1:1 "${chezmoi[@]}" apply
 printf '#!/bin/sh\necho modified\n' > "$temporary/modified-binary"
