@@ -52,6 +52,8 @@ regardless of your shell's umask.
 
 Log in again to keep `~/.local/bin` on PATH; run `zellij` to start a terminal session.
 Ubuntu's default Bash configuration loads the managed `.bash_aliases`, which defines `zj` as `zellij`.
+Apply installs [zoxide from Ubuntu APT](https://packages.ubuntu.com/resolute/zoxide) if missing;
+`.bash_aliases` initializes it when available. Use `z` to revisit directories.
 Use `zj attach --create work` to create or reattach to a session, and `zj list-sessions` to list sessions.
 After applying alias changes, run `source ~/.bash_aliases` in existing Bash shells or open a new shell.
 Codex CLI installs as your normal user without sudo or Node.js. Enable device code login in your

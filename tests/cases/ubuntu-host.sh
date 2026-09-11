@@ -23,6 +23,7 @@ for gpu in '' 'NVIDIA display-class PCI device'; do
     rm -f "$s/group"
 
     bash "$temporary/host.sh"
+    grep -Fxq zoxide "$s/packages"
     grep -Fxq docker-ce "$s/packages"
     test "$(grep -c '^usermod ' "$s/sudo")" = 1
     grep -Fxq docker.service "$s/active"

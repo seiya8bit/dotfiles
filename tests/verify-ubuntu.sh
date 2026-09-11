@@ -113,6 +113,18 @@ done
 
 test "$(stat -c %a "$destination/.gitconfig")" = 644
 test "$(stat -c %a "$destination/.bash_aliases")" = 644
+bash --noprofile --norc -euc '
+    PATH=
+    source "$1"
+    [[ -z $(declare -F z) ]]
+    zoxide() {
+        [[ $* == "init bash" ]] || return 1
+        echo "z() { echo initialized; }"
+    }
+    source "$1"
+    [[ $(z) == initialized ]]
+    [[ -z $(declare -F cd) ]]
+' bash "$destination/.bash_aliases"
 for binary in "${binaries[@]}"; do
     test ! -e "$binary"
 done

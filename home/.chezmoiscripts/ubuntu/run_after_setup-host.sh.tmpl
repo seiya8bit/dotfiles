@@ -8,6 +8,7 @@ trap 'echo "Ubuntu host setup failed at line $LINENO; resolve the reported probl
 {{ template "ubuntu-host/openssh.sh.tmpl" . }}
 {{ template "ubuntu-host/nvidia.sh.tmpl" . }}
 check_docker
+install_missing zoxide
 setup_openssh
 
 temporary=$(mktemp -d)
