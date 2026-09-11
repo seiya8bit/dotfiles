@@ -7,9 +7,32 @@ Setup requires internet access; init prompts for your Git name and email.
 Apply manages `.gitconfig`, the Windows common PowerShell profile and Ubuntu's `.bash_aliases`, `.bashrc`, `~/.local/bin/zellij` and `~/.local/bin/codex`.
 Back up existing files and move conflicting files, directories or links before applying. Unrelated files remain unmanaged.
 
+## Setup policy
+
+Prioritize preserving data and settings and controlling disruption, then repeatability and lower maintenance cost.
+Choose automation by official support and these priorities on both Windows and Ubuntu. Use native package managers,
+official tools and [idempotent chezmoi scripts](https://www.chezmoi.io/user-guide/use-scripts-to-perform-actions/);
+add machinery only for a demonstrated requirement.
+
+| Area | Default |
+| --- | --- |
+| Shared user configuration | Use `--exclude scripts,externals` with both diff and apply for routine updates. |
+| Windows applications | Let WinGet validate and install packages from `winget.json` during full setup. |
+| Ubuntu Docker, Compose, Buildx, SSH, NVIDIA driver and GPU containers | Supervised automatic setup using APT for supported installation and dependency handling. |
+| Windows GPU/chipset drivers | Use [Windows Update](https://support.microsoft.com/en-us/windows/hardware/drivers/automatically-get-recommended-and-updated-hardware-drivers) or manually launched official vendor tools for device selection and installation. |
+| Firmware, Secure Boot enrollment and reboots | Operator-controlled steps following official instructions. |
+| Upgrades, repairs and service restarts | Planned maintenance using the original installation source; preserve the OS security-update policy. |
+
+Full `chezmoi apply` is for intentional provisioning or pinned-binary updates, with package operations and their service
+effects expected. Keep host setup supervised until [hardware acceptance](#verification) is recorded for the target
+configuration. Preserve existing settings and stop when compatibility or recovery is uncertain.
+
 ## Windows setup
 
-Finish Windows Update, enable CPU virtualization, then run as administrator:
+Finish Windows Update and any requested restart. On Ryzen 7 7700 / Radeon RX 9060 XT, manually launch
+[AMD Auto-Detect and Install](https://www.amd.com/en/resources/support-articles/faqs/GPU-131.html) for compatible chipset
+and GPU drivers. Prefer the Recommended GPU release unless a documented fix or application requires another version.
+Use normal installation without Factory Reset and restart when requested. Enable CPU virtualization, then run as administrator:
 
 ```powershell
 wsl --install --no-distribution --web-download
@@ -67,7 +90,7 @@ Missing Tailscale installs through its [official installer](https://tailscale.co
 
 ## Ubuntu host services
 
-Normal `chezmoi apply` uses sudo to install missing packages and verified APT keys/sources, add you to the
+Full `chezmoi apply` uses sudo to install missing packages and verified APT keys/sources, add you to the
 Docker group and start enabled services. Disabled/masked services stay unchanged; hooks never restart services or reboot.
 
 | Component | Installation |
@@ -89,8 +112,10 @@ are added just for verification. If the module is unavailable, headless drivers 
 These checks do not verify CUDA execution.
 
 APT resolves dependencies and preserves conffiles; [package operations can restart services](https://discourse.ubuntu.com/t/needrestart-changes-in-ubuntu-24-04-service-restarts/44671).
-Conflicting packages, settings and APT keys/sources require manual resolution. On failure, resolve the reported issue
-and rerun apply; completed installations do not repeat. After apply, follow the reported manual actions:
+Conflicts and partial installations require manual resolution before reapplying; completed packages normally stay installed.
+If NVIDIA signed modules install but the driver package fails, the existing-driver guard stops the next apply. Inspect
+the APT error and repair using the Ubuntu driver instructions above; keep the guard and avoid automatic package removal.
+After apply, follow the reported manual actions:
 
 - Log out and back in for the **root-equivalent** [Docker group](https://docs.docker.com/engine/install/linux-postinstall/).
 - Reboot after driver installation, enroll a Secure Boot key if requested, then rerun apply.
@@ -114,19 +139,22 @@ Ubuntu's Zellij and Codex versions are pinned in `home/.chezmoiexternal.toml`. T
 change its release URL and both architecture SHA-256 checksums using the official release assets,
 then run verification and review the diff before applying.
 
-Use `chezmoi cd` to edit `home/` or `winget.json`. To retrieve and apply repository updates:
+Use `chezmoi cd` to edit `home/` or `winget.json`. For routine configuration updates:
 
 ```sh
 chezmoi update --apply=false
 chezmoi init
-chezmoi diff
-chezmoi apply
+chezmoi diff --exclude scripts,externals
+chezmoi apply --exclude scripts,externals
 ```
 
-Apply configuration only, without installing apps or binaries or running scripts or sudo (downloads may still occur):
+This applies configuration without installing apps or binaries or running scripts or sudo (downloads may still occur).
+To intentionally install missing apps or host components, or update pinned external binaries, use full setup during
+an appropriate maintenance window instead:
 
 ```sh
-chezmoi apply --exclude scripts,externals
+chezmoi diff
+chezmoi apply
 ```
 
 ## Verification
