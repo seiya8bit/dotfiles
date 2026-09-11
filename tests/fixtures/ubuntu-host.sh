@@ -45,8 +45,17 @@ if grep -q '^nvidia-driver-' "$s/packages"; then
 fi
 
 nvidia-ctk() {
-    [[ $* == 'cdi list' ]] || return 99
-    echo "${HOST_CDI-nvidia.com/gpu=all}"
+    case "$*" in
+        'cdi generate --mode=nvml --output=')
+            [[ ${HOST_FAIL-} != cdi-generate ]]
+            ;;
+        'cdi list')
+            echo "${HOST_CDI-nvidia.com/gpu=all}"
+            ;;
+        *)
+            return 99
+            ;;
+    esac
 }
 
 curl() {

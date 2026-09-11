@@ -89,6 +89,8 @@ fixture_sha=$(printf 'fixture-key\n' | sha256sum | cut -d ' ' -f 1)
 sed -i "/^set -Eeuo pipefail$/a source \"$DOTFILES_HOST_STATE/mock.sh\"" "$host_hook"
 sed -i "s|^etc=/etc$|etc=\"$DOTFILES_HOST_STATE/etc\"|; s|^run=/run$|run=\"$DOTFILES_HOST_STATE/run\"|; s|/usr/bin/nvidia-cdi-hook|$DOTFILES_HOST_STATE/mock.sh|; s|[a-f0-9]\{64\}|$fixture_sha|g" \
     "$host_hook" "$checkout/home/.chezmoitemplates/ubuntu-host/"*.tmpl
+sed -i "s|/proc/driver/nvidia/version|$DOTFILES_HOST_STATE/nvidia-version|g" \
+    "$checkout/home/.chezmoitemplates/ubuntu-host/nvidia.sh.tmpl"
 
 printf 'docker-ce\ndocker-ce-cli\ncontainerd.io\ndocker-compose-plugin\ndocker-buildx-plugin\nopenssh-server\npciutils\n' > "$DOTFILES_HOST_STATE/packages"
 printf 'docker.service\nssh.socket\nnvidia-cdi-refresh.path\n' > "$DOTFILES_HOST_STATE/active"

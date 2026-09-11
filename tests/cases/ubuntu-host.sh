@@ -49,12 +49,33 @@ cp -a "$s/etc" "$s/expected-etc"
 bash "$temporary/host.sh"
 diff -r "$s/expected-etc" "$s/etc"
 
-expect_host_failure 'Existing NVIDIA driver is unusable' HOST_FAIL=driver
+printf 'NVRM version: 580.0\n' > "$s/nvidia-version"
+expect_host_failure 'Existing NVIDIA driver could not be verified' HOST_FAIL=driver
 expect_host_failure 'CDI device missing' HOST_CDI=
 expect_host_failure 'Compose 2.30+' HOST_COMPOSE=2.29.0
 expect_host_failure 'requires Docker 29.2+' HOST_VERSION=29.1.3
 expect_host_failure 'Ubuntu Server 26.04 LTS amd64 or arm64' HOST_ARCH=riscv64
 expect_host_failure 'WSL and Jetson/L4T' HOST_KERNEL=6.6-microsoft
+
+# A headless installation can have a loaded driver without nvidia-smi.
+cp "$s/packages" "$s/full-driver-packages"
+sed -i 's/^nvidia-driver-/nvidia-headless-no-dkms-/' "$s/packages"
+cp "$s/packages" "$s/headless-packages"
+bash "$temporary/host.sh"
+bash "$temporary/host.sh"
+cmp "$s/headless-packages" "$s/packages"
+diff -r "$s/expected-etc" "$s/etc"
+expect_host_failure 'NVIDIA CDI generation failed' HOST_FAIL=cdi-generate
+expect_host_failure 'CDI device missing' HOST_CDI=
+
+rm "$s/nvidia-version"
+expect_host_failure 'Existing NVIDIA driver could not be verified'
+printf 'nvidia-headless-no-dkms\n' > "$s/run/reboot-required.pkgs"
+bash "$temporary/host.sh" > "$s/reboot.log"
+grep -Fq 'Manual action: reboot' "$s/reboot.log"
+cmp "$s/headless-packages" "$s/packages"
+rm "$s/run/reboot-required.pkgs"
+cp "$s/full-driver-packages" "$s/packages"
 
 for state in disabled masked; do
     sed -i '/^docker.service$/d' "$s/active"
