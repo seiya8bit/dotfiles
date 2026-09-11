@@ -64,7 +64,7 @@ Missing Tailscale installs through its [official installer](https://tailscale.co
 
 Normal `chezmoi apply` uses sudo to install missing host packages, create verified APT keys/sources,
 add the invoking user to the Docker group and start enabled services. Disabled/masked services stay unchanged.
-Apply never restarts services or reboots.
+The hooks do not request service restarts or OS reboots.
 
 | Component | Installation |
 | --- | --- |
@@ -78,7 +78,7 @@ GPU containers use native CDI: [Docker 29.2+ `--gpus all`](https://docs.docker.c
 No NVIDIA PCI GPU skips NVIDIA setup. WSL, Jetson/L4T, unsupported GPU/kernel recommendations and broken
 drivers stop with an explanation; automatic GPU setup targets amd64 / arm64 SBSA.
 
-APT resolves dependencies and preserves conffiles; dependency updates and package scripts can affect services.
+APT resolves dependencies and preserves conffiles; [package operations can restart services](https://discourse.ubuntu.com/t/needrestart-changes-in-ubuntu-24-04-service-restarts/44671).
 Existing Docker installations keep their package source. Conflicting packages, settings and APT keys/sources
 require manual resolution; no automatic removal, migration or configuration replacement occurs.
 Vendor keys are SHA-256 verified; review key rotation before changing template checksums.
