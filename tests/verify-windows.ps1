@@ -35,12 +35,12 @@ try {
     & $chezmoi @options init
     Assert ($LASTEXITCODE -eq 0) 'Reinitialization did not reuse the Git identity.'
 
-    $ubuntuHook = Join-Path $checkout 'home/.chezmoiscripts/run_after_install-ubuntu-host.sh.tmpl'
+    $ubuntuHook = Join-Path $checkout 'home/.chezmoiscripts/ubuntu/run_after_setup-host.sh.tmpl'
     $rendered = (& $chezmoi @options execute-template --file $ubuntuHook) -join "`n"
     Assert ($LASTEXITCODE -eq 0 -and [string]::IsNullOrWhiteSpace($rendered)) 'Ubuntu host provisioning was enabled on Windows.'
 
     # Add only a command-boundary mock to the copied hook; run the real hook body.
-    $hook = Join-Path $checkout 'home/.chezmoiscripts/run_onchange_after_install-windows-apps.ps1.tmpl'
+    $hook = Join-Path $checkout 'home/.chezmoiscripts/windows/run_onchange_after_install-apps.ps1.tmpl'
     $mock = @'
 function winget.exe {
     $expected = @('import', '--import-file', (Join-Path $env:CHEZMOI_WORKING_TREE 'winget.json'),
@@ -67,6 +67,9 @@ function winget.exe {
     Assert ($LASTEXITCODE -eq 0 -and ![IO.File]::Exists($gitconfig)) 'Preview changed the destination.'
     & $chezmoi @options apply --exclude scripts,externals
     Assert ($LASTEXITCODE -eq 0 -and ![IO.File]::Exists($imports)) 'Configuration-only apply installed apps.'
+    foreach ($directory in 'ubuntu', 'windows', 'ubuntu-host', '.chezmoiscripts', '.chezmoitemplates') {
+        Assert (!(Test-Path -LiteralPath (Join-Path $destination $directory))) 'Script/template directories were applied to the destination.'
+    }
     Assert (![IO.File]::Exists((Join-Path $destination '.bash_aliases'))) 'Ubuntu aliases were applied on Windows.'
     Assert ((& git config --file $gitconfig --get user.name) -ceq $name) 'Git name was not quoted correctly.'
     Assert ((& git config --file $gitconfig --get user.email) -ceq 'test@example.invalid') 'Git email changed.'

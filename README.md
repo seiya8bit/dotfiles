@@ -67,6 +67,11 @@ Normal `chezmoi apply` uses sudo for missing host packages, verified APT keys/so
 and service startup. Run `chezmoi init` after updating so Ubuntu uses standard prompting without repeated hook
 confirmations. Configuration-only apply and previews execute no host operations.
 
+Hooks are grouped by OS under `home/.chezmoiscripts/ubuntu/` and `home/.chezmoiscripts/windows/`.
+The Ubuntu `run_after_setup-host.sh.tmpl` entrypoint sets the execution order; common operations, Docker,
+OpenSSH and NVIDIA live in `home/.chezmoitemplates/ubuntu-host/`. Chezmoi assembles one script from these
+parts; they are not copied into the home directory or executed separately.
+
 | Component | Installation |
 | --- | --- |
 | Docker, Compose, Buildx | [Docker stable APT](https://docs.docker.com/engine/install/ubuntu/): `docker-ce docker-ce-cli containerd.io docker-compose-plugin docker-buildx-plugin`. |
@@ -82,7 +87,7 @@ Ubuntu 26.04 amd64 / arm64 SBSA are supported; no NVIDIA PCI GPU skips NVIDIA se
 unsupported GPU/kernel recommendations and broken drivers stop with an explanation. Toolkit 1.18+ supplies CDI refresh.
 APT resolves dependencies and preserves conffiles; package scripts and required dependency updates can affect services.
 Existing keys/sources must match, conflicting packages are never removed, and disabled/masked units stay unchanged.
-Public keys are SHA-256 verified; review vendor key rotation before updating the hook's checksums. Actual failures fail apply;
+Public keys are SHA-256 verified; review vendor key rotation before updating the Docker/NVIDIA template checksums. Actual failures fail apply;
 rerun after resolving them. Completed installations remain and do not repeat. Docker/SSH configuration files are never edited.
 
 Log out and back in for the **root-equivalent** [Docker group](https://docs.docker.com/engine/install/linux-postinstall/).
