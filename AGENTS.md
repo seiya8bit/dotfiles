@@ -1,7 +1,9 @@
 # Agent instructions
 
-- Apply Ponytail throughout planning, design, implementation, refactoring and review: prefer native features, readable code and fewer dependencies. Consult official tool documentation.
+- Apply Ponytail throughout planning, design, implementation, refactoring and review: prefer native features, readable code and fewer dependencies. Assess simplification by responsibility boundaries, dependencies and review scope; file counts and call counts alone do not justify merging. Consult official tool documentation.
 - Write English code, comments and docs; respond in the user's language. Document current setup and usage in `README.md` only.
+- Read the setup policy in `README.md` before recommending or changing setup. Recommend one default and explain material tradeoffs. A question about an alternative does not change policy; justify revisions with new requirements, verified upstream changes, corrected assumptions or reproducible problems. Follow explicit user decisions and update the policy accordingly.
+- Distinguish implementation, mock-test results and real-machine acceptance. Package installation does not establish service/GPU readiness, and a retry does not repair every partial installation.
 - Use Conventional Commits/Branch and squash merges; delete merged branches.
 - Edit chezmoi sources in `home/`. Preserve unmanaged files and reject file/directory/link collisions before apply. Keep `.gitconfig.local` included last and host-specific PowerShell profiles unmanaged; never create or import personal overrides.
 - Manage Ubuntu Bash initialization in a marked block at the end of `.bashrc`, preserving content outside the block. Keep `.bash_aliases` for aliases.
