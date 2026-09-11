@@ -15,7 +15,7 @@ expect_host_failure() {
     grep -Fq "$message" "$s/failure.log"
 }
 
-# Conflicts must stop the consolidated hook before any privileged action.
+# Conflicts must stop setup before any privileged action.
 printf 'containerd\n' > "$s/packages"
 : > "$s/sudo"
 expect_host_failure 'Conflicting or incomplete container packages exist'

@@ -86,12 +86,11 @@ cp "$repository/tests/fixtures/ubuntu-host.sh" "$DOTFILES_HOST_STATE/mock.sh"
 shellcheck --shell=bash --exclude=SC2329 "$DOTFILES_HOST_STATE/mock.sh"
 
 fixture_sha=$(printf 'fixture-key\n' | sha256sum | cut -d ' ' -f 1)
-sed -i -e "/^set -Eeuo pipefail$/a source \"$DOTFILES_HOST_STATE/mock.sh\"" \
-    -e "s|^etc=/etc$|etc=\"$DOTFILES_HOST_STATE/etc\"|" \
-    -e "s|^run=/run$|run=\"$DOTFILES_HOST_STATE/run\"|" \
-    -e "s|/usr/bin/nvidia-cdi-hook|$DOTFILES_HOST_STATE/mock.sh|" \
-    -e "s|/proc/driver/nvidia/version|$DOTFILES_HOST_STATE/nvidia-version|g" \
-    -e "s|[a-f0-9]\{64\}|$fixture_sha|g" "$host_hook"
+sed -i "/^set -Eeuo pipefail$/a source \"$DOTFILES_HOST_STATE/mock.sh\"" "$host_hook"
+sed -i "s|^etc=/etc$|etc=\"$DOTFILES_HOST_STATE/etc\"|; s|^run=/run$|run=\"$DOTFILES_HOST_STATE/run\"|; s|/usr/bin/nvidia-cdi-hook|$DOTFILES_HOST_STATE/mock.sh|; s|[a-f0-9]\{64\}|$fixture_sha|g" \
+    "$host_hook" "$checkout/home/.chezmoitemplates/ubuntu-host/"*.tmpl
+sed -i "s|/proc/driver/nvidia/version|$DOTFILES_HOST_STATE/nvidia-version|g" \
+    "$checkout/home/.chezmoitemplates/ubuntu-host/nvidia.sh.tmpl"
 
 printf 'docker-ce\ndocker-ce-cli\ncontainerd.io\ndocker-compose-plugin\ndocker-buildx-plugin\nopenssh-server\npciutils\n' > "$DOTFILES_HOST_STATE/packages"
 printf 'docker.service\nssh.socket\nnvidia-cdi-refresh.path\n' > "$DOTFILES_HOST_STATE/active"
@@ -108,7 +107,7 @@ test ! -e "$destination/.gitconfig"
 "${chezmoi[@]}" apply "${config_only[@]}"
 test ! -e "$DOTFILES_HOST_STATE/calls"
 
-for directory in ubuntu windows .chezmoiscripts; do
+for directory in ubuntu windows ubuntu-host .chezmoiscripts .chezmoitemplates; do
     test ! -e "$destination/$directory"
 done
 
