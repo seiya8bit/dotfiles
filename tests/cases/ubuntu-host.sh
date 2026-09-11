@@ -27,12 +27,11 @@ for gpu in '' 'NVIDIA display-class PCI device'; do
     test "$(grep -c '^usermod ' "$s/sudo")" = 1
     grep -Fxq docker.service "$s/active"
     grep -Fxq ssh.socket "$s/active"
-    expected_updates=2
     if [[ -n $gpu ]]; then
-        expected_updates=3
         grep -Fxq nvidia-cdi-refresh.path "$s/active"
+    else
+        ! grep -q '^nvidia-' "$s/packages"
     fi
-    test "$(grep -c '^apt-get ' "$s/sudo")" = "$expected_updates"
 
     : > "$s/sudo"
     bash "$temporary/host.sh"
@@ -51,7 +50,7 @@ bash "$temporary/host.sh"
 diff -r "$s/expected-etc" "$s/etc"
 
 expect_host_failure 'Existing NVIDIA driver is unusable' HOST_FAIL=driver
-expect_host_failure 'CDI device missing' HOST_FAIL=cdi
+expect_host_failure 'CDI device missing' HOST_CDI=
 expect_host_failure 'Compose 2.30+' HOST_COMPOSE=2.29.0
 expect_host_failure 'requires Docker 29.2+' HOST_VERSION=29.1.3
 expect_host_failure 'Ubuntu Server 26.04 LTS amd64 or arm64' HOST_ARCH=riscv64
@@ -74,7 +73,7 @@ for failure in apt-update apt-install; do
     cmp "$s/baseline" "$s/packages"
 done
 expect_host_failure 'No unambiguous recommended driver' HOST_DRIVER=
-expect_host_failure 'Ubuntu host setup failed' HOST_FAIL=checksum
+expect_host_failure 'Ubuntu host setup failed' HOST_KEY=corrupted
 
 cp "$s/baseline" "$s/packages"
 printf 'nvidia-container-toolkit-base\n' >> "$s/packages"

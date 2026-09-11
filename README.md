@@ -62,39 +62,34 @@ Missing Tailscale installs through its [official installer](https://tailscale.co
 
 ## Ubuntu host services
 
-Normal `chezmoi apply` uses sudo to install missing host packages, create verified APT keys/sources,
-add the invoking user to the Docker group and start enabled services. Disabled/masked services stay unchanged.
-The hooks do not request service restarts or OS reboots.
+Normal `chezmoi apply` uses sudo to install missing packages and verified APT keys/sources, add you to the
+Docker group and start enabled services. Disabled/masked services stay unchanged; hooks never restart services or reboot.
 
 | Component | Installation |
 | --- | --- |
-| Docker, Compose, Buildx | [Docker stable APT](https://docs.docker.com/engine/install/ubuntu/): `docker-ce docker-ce-cli containerd.io docker-compose-plugin docker-buildx-plugin`. |
-| SSH | Ubuntu `openssh-server`; new installs use socket activation. Existing service/socket policy, configuration, keys and firewall rules remain. |
-| NVIDIA driver | [Ubuntu](https://documentation.ubuntu.com/server/how-to/graphics/install-nvidia-drivers/) `ubuntu-drivers list --gpgpu --recommended`, then APT installs signed modules and the driver. Working drivers remain; no automatic DKMS fallback. |
-| GPU containers | NVIDIA stable APT `nvidia-container-toolkit-base`; the packaged [CDI refresh service](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/cdi-support.html) maintains device specifications. |
+| Docker, Compose, Buildx | [Docker stable APT](https://docs.docker.com/engine/install/ubuntu/); existing installations keep their package source. |
+| SSH | Ubuntu `openssh-server`, with socket activation on new installs. Existing settings, keys and firewall rules remain. |
+| NVIDIA driver | [Ubuntu's recommendation](https://documentation.ubuntu.com/server/how-to/graphics/install-nvidia-drivers/), with signed modules. Working drivers remain; no DKMS fallback. |
+| GPU containers | NVIDIA stable APT `nvidia-container-toolkit-base`, with automatic [CDI refresh](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/cdi-support.html). |
 
-GPU containers use native CDI: [Docker 29.2+ `--gpus all`](https://docs.docker.com/engine/release-notes/29/#2920),
-[Compose 2.30+ `gpus: all`](https://docs.docker.com/reference/compose-file/services/#gpus) and Toolkit 1.18+.
-No NVIDIA PCI GPU skips NVIDIA setup. WSL, Jetson/L4T, unsupported GPU/kernel recommendations and broken
-drivers stop with an explanation; automatic GPU setup targets amd64 / arm64 SBSA.
+GPU containers require [Docker 29.2+ `--gpus all`](https://docs.docker.com/engine/release-notes/29/#2920),
+[Compose 2.30+ `gpus: all`](https://docs.docker.com/reference/compose-file/services/#gpus) and Toolkit 1.18+ for native CDI.
+No NVIDIA PCI GPU skips NVIDIA setup. Automatic GPU setup supports amd64 / arm64 SBSA;
+WSL, Jetson/L4T, unsupported GPU/kernel recommendations and broken drivers stop with an explanation.
 
 APT resolves dependencies and preserves conffiles; [package operations can restart services](https://discourse.ubuntu.com/t/needrestart-changes-in-ubuntu-24-04-service-restarts/44671).
-Existing Docker installations keep their package source. Conflicting packages, settings and APT keys/sources
-require manual resolution; no automatic removal, migration or configuration replacement occurs.
-Vendor keys are SHA-256 verified; review key rotation before changing template checksums.
-Failures fail apply; resolve the reported issue and rerun. Completed installations do not repeat.
-
-After apply, follow the reported manual actions:
+Conflicting packages, settings and APT keys/sources require manual resolution. On failure, resolve the reported issue
+and rerun apply; completed installations do not repeat. After apply, follow the reported manual actions:
 
 - Log out and back in for the **root-equivalent** [Docker group](https://docs.docker.com/engine/install/linux-postinstall/).
 - Reboot after driver installation, enroll a Secure Boot key if requested, then rerun apply.
 - If Docker predates Toolkit, restart Docker in a maintenance window (or reboot) for `--gpus all`.
-  New installs put Toolkit first. Older Docker or custom/disabled CDI needs manual setup using the original package source.
+  Older Docker or custom/disabled CDI needs manual setup using the original package source.
 
 Verify after reboot/relogin: `docker run --rm hello-world`, `docker compose version`, `docker buildx version`,
 a new SSH connection, `nvidia-smi -L`, and `docker run --rm --gpus all ubuntu:26.04 nvidia-smi`.
-Host checks never start containers. Keep project runtimes, SDKs and databases in containers.
-Project CUDA compatibility, images, clones, `.env`, data, models and credentials remain outside this repository.
+Keep project runtimes, SDKs and databases in containers; project images, CUDA compatibility, clones, `.env`, data,
+models and credentials remain outside this repository.
 
 ## Personal settings and updates
 
@@ -124,9 +119,6 @@ chezmoi apply --exclude scripts,externals
 
 ## Verification
 
-Hooks live in `home/.chezmoiscripts/{ubuntu,windows}/`. The Ubuntu host entrypoint assembles common, Docker,
-OpenSSH and NVIDIA parts from `home/.chezmoitemplates/ubuntu-host/`; these sources are not installed into the home directory.
-
 From the repository (`chezmoi cd`):
 
 Windows: with PowerShell 7.5+ and chezmoi on PATH, run `./tests/verify-windows.ps1`.
@@ -137,7 +129,6 @@ docker build --tag dotfiles-verify .devcontainer
 docker run --rm --mount "type=bind,source=$PWD,target=/workspaces/dotfiles,readonly" dotfiles-verify bash tests/verify-ubuntu.sh
 ```
 
-Ubuntu checks use disposable command mocks, non-root execution, no real sudo and no Docker socket on amd64/arm64.
-They cover preview/configuration-only isolation, provisioning, retries, CDI, conflicts and failures. Real APT resolution,
-SSH connections, Secure Boot and GPU containers are **unverified**. Record tested OS/architecture/GPU/kernel/driver/Toolkit
-versions here after hardware acceptance; also confirm existing containers retain their ID/start time across apply.
+Ubuntu amd64/arm64 checks use disposable command mocks, non-root execution, no real sudo and no Docker socket.
+Real APT resolution, SSH, Secure Boot and GPU containers are **unverified**. After hardware acceptance, record the
+OS/architecture/GPU/kernel/driver/Toolkit versions here and check that existing containers retain their ID/start time across apply.

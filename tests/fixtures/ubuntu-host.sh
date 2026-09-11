@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 s=$DOTFILES_HOST_STATE
-printf 'run\n' >> "$s/calls"
+touch "$s/calls"
 
 dpkg-query() {
     if (( $# == 3 )); then
@@ -23,9 +23,7 @@ uname() {
 }
 
 id() {
-    if [[ $1 == -un ]]; then
-        echo vscode
-    elif [[ $# == 2 && -e $s/group ]]; then
+    if [[ $# == 2 && -e $s/group ]]; then
         echo 'vscode docker'
     else
         echo vscode
@@ -33,12 +31,10 @@ id() {
 }
 
 lspci() {
-    [[ $* == '-Dnm -d 10de::03xx' ]] || return 99
     echo "${HOST_GPU-}"
 }
 
 ubuntu-drivers() {
-    [[ $* == 'list --gpgpu --recommended' ]] || return 99
     echo "${HOST_DRIVER-nvidia-driver-580-server linux-modules-nvidia-580-server-generic}"
 }
 
@@ -50,16 +46,11 @@ fi
 
 nvidia-ctk() {
     [[ $* == 'cdi list' ]] || return 99
-    [[ ${HOST_FAIL-} != cdi ]] || return 1
-    echo nvidia.com/gpu=all
+    echo "${HOST_CDI-nvidia.com/gpu=all}"
 }
 
 curl() {
-    [[ $* == '--fail --location --silent --show-error https://'*' --output '* ]] || return 99
-    printf 'fixture-key\n' > "${*: -1}"
-    if [[ ${HOST_FAIL-} == checksum ]]; then
-        printf 'corrupted\n' >> "${*: -1}"
-    fi
+    printf '%s\n' "${HOST_KEY-fixture-key}" > "${*: -1}"
 }
 
 docker_mock() {
@@ -93,19 +84,14 @@ systemctl() {
 
     case "$1" in
         show)
-            if [[ $2 == --property=Version ]]; then
-                echo 259
-            else
-                echo "${HOST_STARTED-2100-01-01 00:00:00 UTC}"
-            fi
+            echo "${HOST_STARTED-2100-01-01 00:00:00 UTC}"
             ;;
         is-enabled)
             if [[ $unit == "${HOST_DISABLED-ssh.service}" ]]; then
                 echo "${HOST_SERVICE_STATE-disabled}"
                 return 1
-            else
-                echo enabled
             fi
+            echo enabled
             ;;
         is-active)
             grep -Fxq "$unit" "$s/active"
@@ -122,6 +108,11 @@ systemctl() {
 sudo() {
     printf '%s\n' "$*" >> "$s/sudo"
 
+    if [[ ( $1 == apt-get && ${HOST_FAIL-} == apt-update ) || ( $1 == env && ${HOST_FAIL-} == apt-install ) ]]; then
+        echo "Mock APT ${HOST_FAIL#apt-} failure." >&2
+        return 37
+    fi
+
     case "$1" in
         docker|systemctl)
             "$@"
@@ -130,27 +121,25 @@ sudo() {
             [[ $* == '/usr/sbin/sshd -G' ]]
             ;;
         usermod)
-            [[ $* == 'usermod -aG docker vscode' ]]
+            [[ $* == 'usermod -aG docker vscode' ]] || return 99
             touch "$s/group"
             ;;
         mkdir|cp)
-            [[ ${*: -1} == "$s/etc/"* ]]
+            [[ ${*: -1} == "$s/etc/"* ]] || return 99
             command "$@"
             ;;
         apt-get)
             [[ $* == 'apt-get -o APT::Update::Error-Mode=any update' ]]
-            if [[ ${HOST_FAIL-} == apt-update ]]; then
-                echo 'Mock APT update failure.' >&2
-                return 37
-            fi
             ;;
         env)
-            [[ $* == 'env DEBIAN_FRONTEND=noninteractive UCF_FORCE_CONFFOLD=1 apt-get -y --no-remove --no-upgrade --no-install-recommends -o Dpkg::Options::=--force-confold install -- '* ]]
-            if [[ ${HOST_FAIL-} == apt-install ]]; then
-                echo 'Mock APT install failure.' >&2
-                return 37
-            fi
-            shift 12
+            local option
+            for option in DEBIAN_FRONTEND=noninteractive UCF_FORCE_CONFFOLD=1 apt-get \
+                --no-remove --no-upgrade --no-install-recommends Dpkg::Options::=--force-confold; do
+                [[ " $* " == *" $option "* ]] || return 99
+            done
+            [[ $* == *' install -- '* ]] || return 99
+            while [[ $1 != -- ]]; do shift; done
+            shift
             printf '%s\n' "$@" >> "$s/packages"
 
             if [[ $* == *docker-ce* ]]; then

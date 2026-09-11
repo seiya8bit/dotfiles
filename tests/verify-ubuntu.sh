@@ -2,10 +2,10 @@
 set -euo pipefail
 trap 'echo "Ubuntu verification failed at line $LINENO" >&2' ERR
 
-[[ $(uname -s) == Linux && $EUID != 0 ]] || {
-    echo 'Run as a normal Ubuntu user.' >&2
+if [[ $(uname -s) != Linux || $EUID == 0 || -e /var/run/docker.sock ]] || command -v sudo >/dev/null; then
+    echo 'Run as a normal Ubuntu user without sudo or a Docker socket.' >&2
     exit 1
-}
+fi
 
 repository=$(cd "$(dirname "$0")/.." && pwd)
 chezmoi_bin=$(command -v chezmoi)
@@ -79,12 +79,6 @@ for tool in zellij codex; do
 done
 
 # Mock only the disposable host hook; no real sudo or Docker socket enters this container.
-if command -v sudo >/dev/null; then
-    echo 'Real sudo must not be available.' >&2
-    exit 1
-fi
-[[ ! -e /var/run/docker.sock ]]
-
 export DOTFILES_HOST_STATE="$temporary/host"
 mkdir -p "$DOTFILES_HOST_STATE/etc" "$DOTFILES_HOST_STATE/run"
 printf 'ID=ubuntu\nVERSION_ID=26.04\n' > "$DOTFILES_HOST_STATE/etc/os-release"
