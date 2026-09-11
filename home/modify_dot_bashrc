@@ -3,7 +3,13 @@
 {{- if not (lstat (joinPath .chezmoi.destDir ".bashrc")) -}}
 {{- $content = include "/etc/skel/.bashrc" -}}
 {{- end -}}
-{{- $content = $content | replaceAllRegex `(?ms)^# >>> dotfiles: zoxide >>>\n.*?^# <<< dotfiles: zoxide <<<\n?` "" -}}
+{{- $pattern := `(?ms)^# >>> dotfiles: zoxide >>>\n.*?^# <<< dotfiles: zoxide <<<(\n|$)` -}}
+{{- $markers := regexFindAll `(?m)^# (>>> dotfiles: zoxide >>>|<<< dotfiles: zoxide <<<)` $content -1 -}}
+{{- $blocks := regexFindAll $pattern $content -1 -}}
+{{- if ne (len $markers) (mul 2 (len $blocks)) -}}
+{{- fail "Unbalanced zoxide block markers in .bashrc; repair them before applying" -}}
+{{- end -}}
+{{- $content = $content | replaceAllRegex $pattern "" -}}
 {{- $content -}}
 {{- if and $content (not (hasSuffix "\n" $content)) }}{{ "\n" }}{{ end -}}
 # >>> dotfiles: zoxide >>>

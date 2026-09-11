@@ -137,6 +137,21 @@ HOME="$destination" bash --noprofile --norc -eic '
     [[ $(z) == initialized && $PROMPT_COMMAND == customzoxide ]]
     [[ -z $(declare -F cd) ]]
 ' bash "$destination/.bashrc" 2>"$temporary/bash-init.log"
+
+# Reject damaged markers before they can consume personal settings on a later apply.
+for edit in '/^# >>> dotfiles: zoxide >>>$/d' '/^# <<< dotfiles: zoxide <<<$/d' \
+    '/^# >>> dotfiles: zoxide >>>$/a # >>> dotfiles: zoxide >>>' \
+    's/^# <<< dotfiles: zoxide <<<$/& trailing comment/'; do
+    sed "$edit" "$temporary/expected-bashrc" > "$destination/.bashrc"
+    cp "$destination/.bashrc" "$temporary/damaged-bashrc"
+    if "${chezmoi[@]}" apply --force "${config_only[@]}" > "$temporary/marker.log" 2>&1; then
+        echo "Malformed Bash markers must fail apply: $edit" >&2
+        exit 1
+    fi
+    grep -Fq 'Unbalanced zoxide block markers' "$temporary/marker.log"
+    cmp "$temporary/damaged-bashrc" "$destination/.bashrc"
+done
+cp "$temporary/expected-bashrc" "$destination/.bashrc"
 for binary in "${binaries[@]}"; do
     test ! -e "$binary"
 done
