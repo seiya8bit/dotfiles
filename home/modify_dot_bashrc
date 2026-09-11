@@ -1,0 +1,13 @@
+{{/* chezmoi:modify-template */}}
+{{- $content := .chezmoi.stdin -}}
+{{- if not (lstat (joinPath .chezmoi.destDir ".bashrc")) -}}
+{{- $content = include "/etc/skel/.bashrc" -}}
+{{- end -}}
+{{- $content = $content | replaceAllRegex `(?ms)^# >>> dotfiles: zoxide >>>\n.*?^# <<< dotfiles: zoxide <<<\n?` "" -}}
+{{- $content -}}
+{{- if and $content (not (hasSuffix "\n" $content)) }}{{ "\n" }}{{ end -}}
+# >>> dotfiles: zoxide >>>
+if [[ $- == *i* ]] && command -v zoxide >/dev/null 2>&1; then
+    eval "$(zoxide init bash)"
+fi
+# <<< dotfiles: zoxide <<<

@@ -113,18 +113,30 @@ done
 
 test "$(stat -c %a "$destination/.gitconfig")" = 644
 test "$(stat -c %a "$destination/.bash_aliases")" = 644
-bash --noprofile --norc -euc '
-    PATH=
+test "$(stat -c %a "$destination/.bashrc")" = 644
+head -n "$(wc -l < /etc/skel/.bashrc)" "$destination/.bashrc" | cmp /etc/skel/.bashrc -
+cp "$destination/.bashrc" "$temporary/expected-bashrc"
+"${chezmoi[@]}" apply "${config_only[@]}"
+cmp "$temporary/expected-bashrc" "$destination/.bashrc"
+
+# Personal additions survive apply, and initialization moves after prompt settings.
+printf '# Personal shell settings\nPROMPT_COMMAND=custom' >> "$destination/.bashrc"
+"${chezmoi[@]}" apply "${config_only[@]}"
+test "$(grep -c '^# >>> dotfiles: zoxide >>>$' "$destination/.bashrc")" = 1
+test "$(tail -n 1 "$destination/.bashrc")" = '# <<< dotfiles: zoxide <<<'
+cp "$destination/.bashrc" "$temporary/expected-bashrc"
+HOME="$destination" bash --noprofile --norc -eic '
+    [[ -z $(command -v zoxide) ]]
     source "$1"
     [[ -z $(declare -F z) ]]
     zoxide() {
         [[ $* == "init bash" ]] || return 1
-        echo "z() { echo initialized; }"
+        printf "%s\n" "z() { echo initialized; }" "PROMPT_COMMAND+=zoxide"
     }
     source "$1"
-    [[ $(z) == initialized ]]
+    [[ $(z) == initialized && $PROMPT_COMMAND == customzoxide ]]
     [[ -z $(declare -F cd) ]]
-' bash "$destination/.bash_aliases"
+' bash "$destination/.bashrc" 2>"$temporary/bash-init.log"
 for binary in "${binaries[@]}"; do
     test ! -e "$binary"
 done
@@ -142,7 +154,6 @@ cp "$destination/.gitconfig.local" "$temporary/expected-local"
 
 mkdir -p "$destination/Documents/PowerShell"
 printf '# Unmanaged profile\n' > "$destination/Documents/PowerShell/profile.ps1"
-printf '# Unmanaged shell settings\n' > "$destination/.bashrc"
 mkdir -p "$destination/.codex" "$destination/.agents/skills/personal"
 printf '# Unmanaged Codex settings\n' > "$destination/.codex/config.toml"
 printf '{"test":"unmanaged credential fixture"}\n' > "$destination/.codex/auth.json"
@@ -151,7 +162,7 @@ cp -R "$destination/.codex" "$temporary/expected-codex"
 
 # Reject every managed file and ancestor collision before writing any configuration.
 mkdir "$temporary/link-target"
-for relative in .bash_aliases .gitconfig .local .local/bin .local/bin/zellij .local/bin/codex; do
+for relative in .bash_aliases .bashrc .gitconfig .local .local/bin .local/bin/zellij .local/bin/codex; do
     conflict="$temporary/conflict-home/$relative"
     mkdir -p "$(dirname "$conflict")"
     for kind in link collision; do
@@ -202,7 +213,7 @@ done
 sha256sum "${binaries[@]}" > "$temporary/expected-binaries"
 zellij_version=$("${binaries[0]}" --version)
 [[ $zellij_version == zellij\ * ]]
-test "$(HOME="$destination" PATH="$destination/.local/bin:$PATH" bash --noprofile --rcfile /etc/skel/.bashrc \
+test "$(HOME="$destination" PATH="$destination/.local/bin:$PATH" bash --noprofile --rcfile "$destination/.bashrc" \
     -ic 'zj --version' 2>"$temporary/bash.log")" = "$zellij_version"
 HOME="$destination" CODEX_HOME="$destination/.codex" "${binaries[1]}" --version | grep -E '^codex-cli [0-9]'
 HTTPS_PROXY=http://127.0.0.1:1 "${chezmoi[@]}" apply
@@ -269,7 +280,9 @@ test "$("${git_config[@]}" --get user.name)" = 'Local User'
 cmp "$temporary/expected-git" "$destination/.gitconfig"
 cmp "$temporary/expected-local" "$destination/.gitconfig.local"
 grep -qx '# Unmanaged profile' "$destination/Documents/PowerShell/profile.ps1"
-grep -qx '# Unmanaged shell settings' "$destination/.bashrc"
+cmp "$temporary/expected-bashrc" "$destination/.bashrc"
+grep -qx '# Personal shell settings' "$destination/.bashrc"
+grep -qx 'PROMPT_COMMAND=custom' "$destination/.bashrc"
 cmp "$temporary/expected-codex/config.toml" "$destination/.codex/config.toml"
 cmp "$temporary/expected-codex/auth.json" "$destination/.codex/auth.json"
 grep -qx '# Unmanaged skill' "$destination/.agents/skills/personal/SKILL.md"

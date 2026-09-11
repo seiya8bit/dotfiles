@@ -80,6 +80,7 @@ function winget.exe {
         Assert (!(Test-Path -LiteralPath (Join-Path $destination $directory))) 'Script/template directories were applied to the destination.'
     }
     Assert (![IO.File]::Exists((Join-Path $destination '.bash_aliases'))) 'Ubuntu aliases were applied on Windows.'
+    Assert (![IO.File]::Exists((Join-Path $destination '.bashrc'))) 'Ubuntu Bash initialization was applied on Windows.'
     Assert ((& git config --file $gitconfig --get user.name) -ceq $name) 'Git name was not quoted correctly.'
     Assert ((& git config --file $gitconfig --get user.email) -ceq 'test@example.invalid') 'Git email changed.'
     $expectedGit = [IO.File]::ReadAllText($gitconfig)
@@ -152,6 +153,7 @@ function winget.exe {
     $preserved = @{
         '.gitconfig.local' = [IO.File]::ReadAllText($personal)
         '.bash_aliases' = '# Unmanaged aliases'
+        '.bashrc' = '# Unmanaged Bash configuration'
         'Documents/PowerShell/Microsoft.PowerShell_profile.ps1' = '# Personal console settings'
         'Documents/PowerShell/Microsoft.VSCode_profile.ps1' = '# Personal VS Code settings'
         'keep' = 'unrelated'

@@ -1,8 +1,9 @@
 {{ $paths := dict ".gitconfig" "file" -}}
 {{ if and (eq .chezmoi.os "linux") (eq .chezmoi.osRelease.id "ubuntu") -}}
-{{ $paths = merge $paths (dict ".bash_aliases" "file") -}}
+{{ $paths = merge $paths (dict ".bash_aliases" "file" ".bashrc" "file") -}}
 {{ else -}}
 .bash_aliases
+.bashrc
 {{ end -}}
 {{ if eq .chezmoi.os "windows" -}}
 {{ $paths = merge $paths (dict

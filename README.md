@@ -4,7 +4,7 @@ Windows 11 x64 / Ubuntu Server 26.04 LTS amd64 and arm64 setup with chezmoi 2.72
 Fork this repository, edit the [Windows app list](winget.json) and use your fork URL below.
 Setup requires internet access; init prompts for your Git name and email.
 
-Apply manages `.gitconfig`, the Windows common PowerShell profile and Ubuntu's `.bash_aliases`, `~/.local/bin/zellij` and `~/.local/bin/codex`.
+Apply manages `.gitconfig`, the Windows common PowerShell profile and Ubuntu's `.bash_aliases`, `.bashrc`, `~/.local/bin/zellij` and `~/.local/bin/codex`.
 Back up existing files and move conflicting files, directories or links before applying. Unrelated files remain unmanaged.
 
 ## Windows setup
@@ -53,9 +53,12 @@ regardless of your shell's umask.
 Log in again to keep `~/.local/bin` on PATH; run `zellij` to start a terminal session.
 Ubuntu's default Bash configuration loads the managed `.bash_aliases`, which defines `zj` as `zellij`.
 Apply installs [zoxide from Ubuntu APT](https://packages.ubuntu.com/resolute/zoxide) if missing;
-`.bash_aliases` initializes it when available. Use `z` to revisit directories.
+chezmoi manages a marked initialization block at the end of `.bashrc`, preserving all content outside that block.
+A missing `.bashrc` starts from Ubuntu's `/etc/skel/.bashrc`. Keep personal settings outside the marked block;
+apply moves the block after any later additions. Interactive Bash initializes zoxide when available, keeping `cd` unchanged.
+Use `z` to revisit directories.
 Use `zj attach --create work` to create or reattach to a session, and `zj list-sessions` to list sessions.
-After applying alias changes, run `source ~/.bash_aliases` in existing Bash shells or open a new shell.
+After applying Bash configuration changes, run `source ~/.bashrc` in existing interactive shells or open a new shell.
 Codex CLI installs as your normal user without sudo or Node.js. Enable device code login in your
 ChatGPT security settings or workspace permissions, then run `codex login --device-auth` on the server.
 Open the printed URL in a browser on another device and enter the one-time code there; the server needs no browser.
