@@ -17,6 +17,7 @@ kernel=$(uname -r)
     die 'WSL and Jetson/L4T need platform-specific host setup.'
 
 systemctl show --property=Version --value >/dev/null
+apt_updated=false
 
 installed() {
     [[ $(dpkg-query -W -f='${db:Status-Status}' "$1" 2>/dev/null) == installed ]]
@@ -35,7 +36,10 @@ install_missing() {
         return
     fi
 
-    sudo apt-get -o APT::Update::Error-Mode=any update
+    if ! $apt_updated; then
+        sudo apt-get -o APT::Update::Error-Mode=any update
+        apt_updated=true
+    fi
     sudo env DEBIAN_FRONTEND=noninteractive UCF_FORCE_CONFFOLD=1 apt-get -y \
         --no-remove --no-upgrade --no-install-recommends \
         -o Dpkg::Options::=--force-confold install -- "${missing[@]}"
@@ -84,6 +88,7 @@ repository() {
 
     publish "$temporary/key" "$key"
     publish "$temporary/source" "$source"
+    apt_updated=false
 }
 
 start_enabled() {

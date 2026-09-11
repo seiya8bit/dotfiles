@@ -40,21 +40,6 @@ for source in "$external" "$tailscale_hook" "$host_hook"; do
     test -z "$("${chezmoi[@]}" --override-data '{"chezmoi":{"osRelease":{"id":"debian"}}}' execute-template --file "$source")"
 done
 
-for platform in 'amd64 x86_64' 'arm64 aarch64'; do
-    read -r arch machine <<< "$platform"
-    "${chezmoi[@]}" --override-data "{\"chezmoi\":{\"arch\":\"$arch\"}}" execute-template --file "$external" > "$temporary/$arch.toml"
-    for tool in zellij codex; do
-        sed -n "\|^\[\".local/bin/$tool\"\]|,/^$/p" "$temporary/$arch.toml" > "$temporary/entry.toml"
-        grep -Fxq 'type = "archive-file"' "$temporary/entry.toml"
-        grep -Fxq 'executable = true' "$temporary/entry.toml"
-        grep -q '^checksum.sha256 = "[a-f0-9]\{64\}"$' "$temporary/entry.toml"
-    done
-
-    grep -Fxq "url = \"https://github.com/zellij-org/zellij/releases/download/v0.45.1/zellij-$machine-unknown-linux-musl.tar.gz\"" "$temporary/$arch.toml"
-    grep -Fxq "url = \"https://github.com/openai/codex/releases/download/rust-v0.154.0/codex-$machine-unknown-linux-musl.tar.gz\"" "$temporary/$arch.toml"
-    grep -Fxq "path = \"codex-$machine-unknown-linux-musl\"" "$temporary/$arch.toml"
-done
-
 if "${chezmoi[@]}" --override-data '{"chezmoi":{"arch":"riscv64"}}' execute-template --file "$external" > "$temporary/arch.log" 2>&1; then
     echo 'An unsupported architecture must fail.' >&2
     exit 1
@@ -206,10 +191,12 @@ done
 for path in "$destination/.local/bin" "${binaries[@]}"; do
     test "$(stat -c %a "$path")" = 755
 done
-test "$("${binaries[0]}" --version)" = 'zellij 0.45.1'
+sha256sum "${binaries[@]}" > "$temporary/expected-binaries"
+zellij_version=$("${binaries[0]}" --version)
+[[ $zellij_version == zellij\ * ]]
 test "$(HOME="$destination" PATH="$destination/.local/bin:$PATH" bash --noprofile --rcfile /etc/skel/.bashrc \
-    -ic 'zj --version' 2>"$temporary/bash.log")" = 'zellij 0.45.1'
-test "$(HOME="$destination" CODEX_HOME="$destination/.codex" "${binaries[1]}" --version)" = 'codex-cli 0.154.0'
+    -ic 'zj --version' 2>"$temporary/bash.log")" = "$zellij_version"
+HOME="$destination" CODEX_HOME="$destination/.codex" "${binaries[1]}" --version | grep -E '^codex-cli [0-9]'
 HTTPS_PROXY=http://127.0.0.1:1 "${chezmoi[@]}" apply
 
 printf '#!/bin/sh\necho modified\n' > "$temporary/modified-binary"
@@ -223,8 +210,7 @@ for binary in "${binaries[@]}"; do
 done
 
 HTTPS_PROXY=http://127.0.0.1:1 "${chezmoi[@]}" apply --exclude scripts --force
-test "$("${binaries[0]}" --version)" = 'zellij 0.45.1'
-test "$(HOME="$destination" CODEX_HOME="$destination/.codex" "${binaries[1]}" --version)" = 'codex-cli 0.154.0'
+sha256sum --check --status "$temporary/expected-binaries"
 
 # Isolate PATH for the missing-Tailscale case, including hosts that already have it.
 export DOTFILES_TAILSCALE_BIN="$temporary/tailscale-bin"

@@ -1,65 +1,67 @@
 setup_nvidia() {
+    install_missing pciutils
     gpus=$(lspci -Dnm -d 10de::03xx)
     reboot_pending=false
 
-    if [[ -n $gpus ]]; then
-        installed nvidia-l4t-core && die 'Jetson/L4T requires platform-specific NVIDIA setup.'
-
-        if ! command -v nvidia-smi >/dev/null || ! nvidia-smi -L; then
-            drivers=$(grep -E \
-                '^(nvidia-(driver|headless|dkms|kernel|utils|compute-utils)-|linux-modules-nvidia-|libnvidia-(compute|gl)-).* (installed|unpacked|half-[^ ]+|triggers-[^ ]+)$' \
-                <<< "$inventory" || :)
-
-            if [[ -n $drivers ]] || command -v nvidia-smi >/dev/null || command -v nvidia-uninstall >/dev/null; then
-                pending=$(sed -nE 's/^nvidia-driver-([0-9]+(-server)?(-open)?)(:[^ ]+)? installed$/\1/p' <<< "$drivers")
-
-                # shellcheck disable=SC2015
-                [[ -n $pending && $pending != *$'\n'* && -f $run/reboot-required.pkgs ]] &&
-                    ! grep -Eq ' (unpacked|half-[^ ]+|triggers-[^ ]+)$' <<< "$drivers" &&
-                    grep -Eq "^linux-modules-nvidia-$pending-[^ ]+ installed$" <<< "$drivers" &&
-                    grep -Eq '^(nvidia-|linux-)' "$run/reboot-required.pkgs" ||
-                    die 'Existing NVIDIA driver is unusable; diagnose it manually. It will not be replaced.'
-            else
-                install_missing ubuntu-drivers-common
-                recommendation=$(ubuntu-drivers list --gpgpu --recommended)
-                read -r driver modules extra <<< "$recommendation"
-
-                [[ $recommendation != *$'\n'* && $driver =~ ^nvidia-driver-[0-9]+(-server)?(-open)?$ && -z $extra &&
-                    $modules == linux-modules-nvidia-"${driver#nvidia-driver-}"-* && $modules =~ ^[a-z0-9.+-]+$ ]] ||
-                    die 'No unambiguous recommended driver with signed modules; check GPU/kernel support manually.'
-
-                # Signed modules satisfy the driver's DKMS dependency.
-                install_missing "$modules"
-                install_missing "$driver"
-            fi
-
-            reboot_pending=true
-        fi
-
-        if ! installed nvidia-container-toolkit-base; then
-            repository nvidia-container-toolkit https://nvidia.github.io/libnvidia-container/gpgkey \
-                c880576d6cf75a48e5027a871bac70fd0421ab07d2b55f30877b21f1c87959c9 \
-                "https://nvidia.github.io/libnvidia-container/stable/deb/$arch /"
-            install_missing nvidia-container-toolkit-base
-        fi
-
-        start_enabled nvidia-cdi-refresh.path
+    if [[ -z $gpus ]]; then
+        return
     fi
+
+    installed nvidia-l4t-core && die 'Jetson/L4T requires platform-specific NVIDIA setup.'
+
+    if ! command -v nvidia-smi >/dev/null || ! nvidia-smi -L; then
+        drivers=$(grep -E \
+            '^(nvidia-(driver|headless|dkms|kernel|utils|compute-utils)-|linux-modules-nvidia-|libnvidia-(compute|gl)-).* (installed|unpacked|half-[^ ]+|triggers-[^ ]+)$' \
+            <<< "$inventory" || :)
+
+        if [[ -n $drivers ]] || command -v nvidia-smi >/dev/null || command -v nvidia-uninstall >/dev/null; then
+            pending=$(sed -nE 's/^nvidia-driver-([0-9]+(-server)?(-open)?)(:[^ ]+)? installed$/\1/p' <<< "$drivers")
+
+            # shellcheck disable=SC2015
+            [[ -n $pending && $pending != *$'\n'* && -f $run/reboot-required.pkgs ]] &&
+                ! grep -Eq ' (unpacked|half-[^ ]+|triggers-[^ ]+)$' <<< "$drivers" &&
+                grep -Eq "^linux-modules-nvidia-$pending-[^ ]+ installed$" <<< "$drivers" &&
+                grep -Eq '^(nvidia-|linux-)' "$run/reboot-required.pkgs" ||
+                die 'Existing NVIDIA driver is unusable; diagnose it manually. It will not be replaced.'
+        else
+            install_missing ubuntu-drivers-common
+            recommendation=$(ubuntu-drivers list --gpgpu --recommended)
+            read -r driver modules extra <<< "$recommendation"
+
+            [[ $recommendation != *$'\n'* && $driver =~ ^nvidia-driver-[0-9]+(-server)?(-open)?$ && -z $extra &&
+                $modules == linux-modules-nvidia-"${driver#nvidia-driver-}"-* && $modules =~ ^[a-z0-9.+-]+$ ]] ||
+                die 'No unambiguous recommended driver with signed modules; check GPU/kernel support manually.'
+
+            # Signed modules satisfy the driver's DKMS dependency.
+            install_missing "$modules"
+            install_missing "$driver"
+        fi
+
+        reboot_pending=true
+    fi
+
+    if ! installed nvidia-container-toolkit-base; then
+        repository nvidia-container-toolkit https://nvidia.github.io/libnvidia-container/gpgkey \
+            c880576d6cf75a48e5027a871bac70fd0421ab07d2b55f30877b21f1c87959c9 \
+            "https://nvidia.github.io/libnvidia-container/stable/deb/$arch /"
+        install_missing nvidia-container-toolkit-base
+    fi
+
+    start_enabled nvidia-cdi-refresh.path
 }
 
 verify_nvidia() {
     if [[ -z $gpus ]]; then
         echo 'No NVIDIA PCI GPU; skipping NVIDIA setup.'
-        exit
+        return
     fi
 
     dpkg --compare-versions "${compose#v}" ge 2.30.0 ||
         die 'Compose 2.30+ is required for gpus: all; upgrade using the original package source manually.'
-    nvidia-ctk --version
 
     if $reboot_pending; then
         echo 'Manual action: reboot, complete Secure Boot enrollment if requested, then rerun apply. GPU readiness is not verified.'
-        exit
+        return
     fi
 
     nvidia-ctk cdi list | grep -Fx 'nvidia.com/gpu=all' >/dev/null ||
@@ -67,7 +69,7 @@ verify_nvidia() {
 
     if ! systemctl is-active --quiet docker.service; then
         echo 'Manual action: start the local Docker service to use GPU containers.'
-        exit
+        return
     fi
 
     version=$(sudo docker --host unix:///run/docker.sock info --format '{{ "{{.ServerVersion}}" }}')

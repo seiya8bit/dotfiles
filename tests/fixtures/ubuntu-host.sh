@@ -11,8 +11,8 @@ dpkg-query() {
 }
 
 dpkg() {
-    if [[ $1 == --print-architecture ]]; then
-        echo "${HOST_ARCH:-amd64}"
+    if [[ $1 == --print-architecture && -n ${HOST_ARCH-} ]]; then
+        echo "$HOST_ARCH"
     else
         command dpkg "$@"
     fi
@@ -33,12 +33,12 @@ id() {
 }
 
 lspci() {
-    [[ $* == '-Dnm -d 10de::03xx' ]]
+    [[ $* == '-Dnm -d 10de::03xx' ]] || return 99
     echo "${HOST_GPU-}"
 }
 
 ubuntu-drivers() {
-    [[ $* == 'list --gpgpu --recommended' ]]
+    [[ $* == 'list --gpgpu --recommended' ]] || return 99
     echo "${HOST_DRIVER-nvidia-driver-580-server linux-modules-nvidia-580-server-generic}"
 }
 
@@ -49,14 +49,17 @@ if grep -q '^nvidia-driver-' "$s/packages"; then
 fi
 
 nvidia-ctk() {
-    [[ $* == --version || $* == 'cdi list' ]]
-    [[ ${HOST_FAIL-} != cdi ]]
+    [[ $* == 'cdi list' ]] || return 99
+    [[ ${HOST_FAIL-} != cdi ]] || return 1
     echo nvidia.com/gpu=all
 }
 
 curl() {
-    [[ $* == '--fail --location --silent --show-error https://'*' --output '* ]]
-    printf '%s\n' "${HOST_FAIL:-fixture-key}" > "${*: -1}"
+    [[ $* == '--fail --location --silent --show-error https://'*' --output '* ]] || return 99
+    printf 'fixture-key\n' > "${*: -1}"
+    if [[ ${HOST_FAIL-} == checksum ]]; then
+        printf 'corrupted\n' >> "${*: -1}"
+    fi
 }
 
 docker_mock() {
@@ -67,10 +70,10 @@ docker_mock() {
         'compose version --short')
             echo "${HOST_COMPOSE:-2.30.0}"
             ;;
-        *'info --format {{.ServerVersion}}')
+        '--host unix:///run/docker.sock info --format {{.ServerVersion}}')
             echo "${HOST_VERSION:-29.2.0}"
             ;;
-        *'info --format {{range .DiscoveredDevices}}{{println .ID}}{{end}}')
+        '--host unix:///run/docker.sock info --format {{range .DiscoveredDevices}}{{println .ID}}{{end}}')
             echo nvidia.com/gpu=all
             ;;
         *)
@@ -93,12 +96,12 @@ systemctl() {
             if [[ $2 == --property=Version ]]; then
                 echo 259
             else
-                echo '2100-01-01 00:00:00 UTC'
+                echo "${HOST_STARTED-2100-01-01 00:00:00 UTC}"
             fi
             ;;
         is-enabled)
             if [[ $unit == "${HOST_DISABLED-ssh.service}" ]]; then
-                echo disabled
+                echo "${HOST_SERVICE_STATE-disabled}"
                 return 1
             else
                 echo enabled
@@ -135,10 +138,18 @@ sudo() {
             command "$@"
             ;;
         apt-get)
-            [[ $* == 'apt-get -o APT::Update::Error-Mode=any update' && ${HOST_FAIL-} != apt ]]
+            [[ $* == 'apt-get -o APT::Update::Error-Mode=any update' ]]
+            if [[ ${HOST_FAIL-} == apt-update ]]; then
+                echo 'Mock APT update failure.' >&2
+                return 37
+            fi
             ;;
         env)
             [[ $* == 'env DEBIAN_FRONTEND=noninteractive UCF_FORCE_CONFFOLD=1 apt-get -y --no-remove --no-upgrade --no-install-recommends -o Dpkg::Options::=--force-confold install -- '* ]]
+            if [[ ${HOST_FAIL-} == apt-install ]]; then
+                echo 'Mock APT install failure.' >&2
+                return 37
+            fi
             shift 12
             printf '%s\n' "$@" >> "$s/packages"
 
