@@ -9,20 +9,27 @@ setup_nvidia() {
 
     installed nvidia-l4t-core && die 'Jetson/L4T requires platform-specific NVIDIA setup.'
 
-    if ! command -v nvidia-smi >/dev/null || ! nvidia-smi -L; then
+    local driver_detected=true
+    if command -v nvidia-smi >/dev/null; then
+        nvidia-smi -L || driver_detected=false
+    else
+        [[ -r /proc/driver/nvidia/version ]] || driver_detected=false
+    fi
+
+    if ! $driver_detected; then
         drivers=$(grep -E \
             '^(nvidia-(driver|headless|dkms|kernel|utils|compute-utils)-|linux-modules-nvidia-|libnvidia-(compute|gl)-).* (installed|unpacked|half-[^ ]+|triggers-[^ ]+)$' \
             <<< "$inventory" || :)
 
         if [[ -n $drivers ]] || command -v nvidia-smi >/dev/null || command -v nvidia-uninstall >/dev/null; then
-            pending=$(sed -nE 's/^nvidia-driver-([0-9]+(-server)?(-open)?)(:[^ ]+)? installed$/\1/p' <<< "$drivers")
+            pending=$(sed -nE 's/^nvidia-(driver|headless(-no-dkms)?)-([0-9]+(-server)?(-open)?)(:[^ ]+)? installed$/\3/p' <<< "$drivers" | sort -u)
 
             # shellcheck disable=SC2015
             [[ -n $pending && $pending != *$'\n'* && -f $run/reboot-required.pkgs ]] &&
                 ! grep -Eq ' (unpacked|half-[^ ]+|triggers-[^ ]+)$' <<< "$drivers" &&
                 grep -Eq "^linux-modules-nvidia-$pending-[^ ]+ installed$" <<< "$drivers" &&
                 grep -Eq '^(nvidia-|linux-)' "$run/reboot-required.pkgs" ||
-                die 'Existing NVIDIA driver is unusable; diagnose it manually. It will not be replaced.'
+                die 'Existing NVIDIA driver could not be verified; check module loading and driver health. It will not be replaced.'
         else
             install_missing ubuntu-drivers-common
             recommendation=$(ubuntu-drivers list --gpgpu --recommended)
@@ -62,6 +69,11 @@ verify_nvidia() {
     if $reboot_pending; then
         echo 'Manual action: reboot, complete Secure Boot enrollment if requested, then rerun apply. GPU readiness is not verified.'
         return
+    fi
+
+    if ! command -v nvidia-smi >/dev/null; then
+        nvidia-ctk cdi generate --mode=nvml --output= >/dev/null ||
+            die 'NVIDIA CDI generation failed; diagnose the driver and Toolkit manually.'
     fi
 
     nvidia-ctk cdi list | grep -Fx 'nvidia.com/gpu=all' >/dev/null ||
