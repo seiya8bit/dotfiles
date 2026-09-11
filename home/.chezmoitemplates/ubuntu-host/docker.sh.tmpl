@@ -1,11 +1,14 @@
 check_docker() {
     inventory=$(dpkg-query -W -f='${binary:Package} ${db:Status-Status}\n')
     new_docker=false
+
     if ! installed docker-ce && ! installed docker.io && ! command -v docker >/dev/null; then
         ! command -v dockerd >/dev/null || die 'Repair the existing Docker installation manually.'
+
         if grep -Eq '^(docker|containerd|runc|podman-docker).* (installed|unpacked|half-[^ ]+|triggers-[^ ]+)$' <<< "$inventory"; then
             die 'Conflicting or incomplete container packages exist; no automatic migration.'
         fi
+
         [[ ! -e $etc/docker && ! -L $etc/docker ]] || die 'Review existing Docker settings before installing.'
         new_docker=true
     fi
@@ -18,18 +21,26 @@ setup_docker() {
             1500c1f56fa9e26b9b8f42452a553675796ade0807cdce11975eb98170b3a570 \
             'https://download.docker.com/linux/ubuntu resolute stable'
     fi
+
     if $new_docker || installed docker-ce; then
         install_missing docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
     elif installed docker.io; then
         install_missing docker-compose-v2 docker-buildx
     fi
+
     docker --version
     compose=$(docker compose version --short)
     docker buildx version
+
     if installed docker-ce || installed docker.io; then
         user=$(id -un)
-        if [[ " $(id -nG "$user") " != *' docker '* ]]; then sudo usermod -aG docker "$user"; fi
-        if [[ " $(id -nG) " != *' docker '* ]]; then echo 'Manual action: log out and back in for root-equivalent Docker group access.'; fi
+        if [[ " $(id -nG "$user") " != *' docker '* ]]; then
+            sudo usermod -aG docker "$user"
+        fi
+        if [[ " $(id -nG) " != *' docker '* ]]; then
+            echo 'Manual action: log out and back in for root-equivalent Docker group access.'
+        fi
+
         start_enabled docker.service
     fi
 }

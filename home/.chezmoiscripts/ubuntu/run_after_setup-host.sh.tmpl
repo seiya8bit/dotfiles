@@ -2,14 +2,17 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 trap 'echo "Ubuntu host setup failed at line $LINENO; resolve the reported problem and rerun chezmoi apply." >&2' ERR
-{{ template "ubuntu-host/common.sh.tmpl" . -}}
-{{ template "ubuntu-host/docker.sh.tmpl" . -}}
-{{ template "ubuntu-host/openssh.sh.tmpl" . -}}
-{{ template "ubuntu-host/nvidia.sh.tmpl" . -}}
+
+{{ template "ubuntu-host/common.sh.tmpl" . }}
+{{ template "ubuntu-host/docker.sh.tmpl" . }}
+{{ template "ubuntu-host/openssh.sh.tmpl" . }}
+{{ template "ubuntu-host/nvidia.sh.tmpl" . }}
 check_docker
 setup_openssh
+
 temporary=$(mktemp -d)
 trap 'rm -rf -- "$temporary"' EXIT
+
 setup_nvidia
 setup_docker
 verify_nvidia

@@ -2,14 +2,21 @@
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $false
 Set-StrictMode -Version Latest
-if (!$IsWindows) { throw 'Use bash tests/verify-ubuntu.sh on Ubuntu.' }
+
+if (!$IsWindows) {
+    throw 'Use bash tests/verify-ubuntu.sh on Ubuntu.'
+}
+
 $repository = Split-Path -Parent $PSScriptRoot
 $chezmoi = (Get-Command chezmoi -CommandType Application -ErrorAction Stop).Source
 $null = Get-Content -LiteralPath (Join-Path $repository 'winget.json') -Raw | ConvertFrom-Json
 
 function Assert {
     param([bool]$Condition, [string]$Message)
-    if (!$Condition) { throw $Message }
+
+    if (!$Condition) {
+        throw $Message
+    }
 }
 
 $temporary = [IO.Directory]::CreateTempSubdirectory('dotfiles-verify-')
@@ -49,7 +56,9 @@ function winget.exe {
         throw 'WinGet arguments changed.'
     }
     foreach ($path in '.gitconfig', 'Documents/PowerShell/profile.ps1') {
-        if (![IO.File]::Exists((Join-Path $env:CHEZMOI_DEST_DIR $path))) { throw 'Installer ran before configuration.' }
+        if (![IO.File]::Exists((Join-Path $env:CHEZMOI_DEST_DIR $path))) {
+            throw 'Installer ran before configuration.'
+        }
     }
     [IO.File]::AppendAllText((Join-Path $env:CHEZMOI_DEST_DIR 'imports'), "run`n")
     Write-Output 'WinGet output'
@@ -89,7 +98,9 @@ function winget.exe {
             . $profile
             Assert (($script:ShellInit -join ',') -ceq 'starship,zoxide') 'Shell initialization failed.'
             Assert ((Get-Alias cd).Definition -ceq $cdBefore) 'The profile changed cd.'
-        } finally { $env:PATH = $previousPath }
+        } finally {
+            $env:PATH = $previousPath
+        }
     }
 
     [IO.File]::Delete($profile)
@@ -114,7 +125,9 @@ function winget.exe {
                 $null = & $chezmoi @options apply --force 2>&1
                 Assert ($LASTEXITCODE -ne 0) "Accepted $kind at $relative."
                 Assert (![IO.File]::Exists($imports)) 'A conflict ran the installer.'
-                if ($relative -ne '.gitconfig') { Assert (![IO.File]::Exists($gitconfig)) 'A conflict changed configuration.' }
+                if ($relative -ne '.gitconfig') {
+                    Assert (![IO.File]::Exists($gitconfig)) 'A conflict changed configuration.'
+                }
                 Assert (@($linkTarget.EnumerateFileSystemInfos()).Count -eq 0) 'Apply wrote through a junction.'
                 if ($kind -eq 'Junction') {
                     Assert ((Get-Item -LiteralPath $conflict -Force).LinkType -eq 'Junction') 'A junction changed.'
@@ -124,8 +137,11 @@ function winget.exe {
                     Assert ([IO.Directory]::Exists($conflict)) 'An unmanaged directory changed.'
                 }
             } finally {
-                if ($directory) { [IO.Directory]::Delete($conflict) }
-                else { [IO.File]::Delete($conflict) }
+                if ($directory) {
+                    [IO.Directory]::Delete($conflict)
+                } else {
+                    [IO.File]::Delete($conflict)
+                }
             }
         }
     }

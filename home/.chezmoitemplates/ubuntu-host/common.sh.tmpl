@@ -1,37 +1,61 @@
-die() { echo "$*" >&2; exit 1; }
+die() {
+    echo "$*" >&2
+    exit 1
+}
+
 etc=/etc
 run=/run
+
 # shellcheck disable=SC1091
 . "$etc/os-release"
 arch=$(dpkg --print-architecture)
 [[ $EUID != 0 && $ID == ubuntu && $VERSION_ID == 26.04 && ( $arch == amd64 || $arch == arm64 ) ]] ||
     die 'Run as a normal user on Ubuntu Server 26.04 LTS amd64 or arm64.'
+
 kernel=$(uname -r)
 [[ ${kernel,,} != *microsoft* && $kernel != *tegra* && ! -e $etc/nv_tegra_release ]] ||
     die 'WSL and Jetson/L4T need platform-specific host setup.'
+
 systemctl show --property=Version --value >/dev/null
-installed() { [[ $(dpkg-query -W -f='${db:Status-Status}' "$1" 2>/dev/null) == installed ]]; }
+
+installed() {
+    [[ $(dpkg-query -W -f='${db:Status-Status}' "$1" 2>/dev/null) == installed ]]
+}
+
 install_missing() {
     local package missing=()
+
     for package; do
-        if ! installed "$package"; then missing+=("$package"); fi
+        if ! installed "$package"; then
+            missing+=("$package")
+        fi
     done
-    if (( ${#missing[@]} == 0 )); then return; fi
+
+    if (( ${#missing[@]} == 0 )); then
+        return
+    fi
+
     sudo apt-get -o APT::Update::Error-Mode=any update
     sudo env DEBIAN_FRONTEND=noninteractive UCF_FORCE_CONFFOLD=1 apt-get -y \
-        --no-remove --no-upgrade --no-install-recommends -o Dpkg::Options::=--force-confold install -- "${missing[@]}"
+        --no-remove --no-upgrade --no-install-recommends \
+        -o Dpkg::Options::=--force-confold install -- "${missing[@]}"
 }
+
 check_path() {
     local path=$1
+
     [[ ! -e $path || -f $path ]] || die "Expected a regular file: $path"
+
     while [[ $path != / ]]; do
         [[ ! -L $path ]] || die "Resolve the symbolic link manually: $path"
         path=$(dirname -- "$path")
         [[ ! -e $path || ( -d $path && -x $path ) ]] || die "Expected an accessible directory: $path"
     done
 }
+
 publish() {
     check_path "$2"
+
     if [[ -e $2 ]]; then
         cmp -s "$1" "$2" || die "Existing file differs; review manually: $2"
     else
@@ -39,27 +63,44 @@ publish() {
         sudo cp --update=none-fail --preserve=mode -T -- "$1" "$2"
     fi
 }
+
 repository() {
-    local url=$2 sha=$3 repo=$4 key="$etc/apt/keyrings/$1.asc" source="$etc/apt/sources.list.d/$1.list" file
+    local url=$2 sha=$3 repo=$4 \
+        key="$etc/apt/keyrings/$1.asc" source="$etc/apt/sources.list.d/$1.list" file
+
     shopt -s nullglob
     for file in "$etc/apt/sources.list" "$etc/apt/sources.list.d/"*.list "$etc/apt/sources.list.d/"*.sources; do
         [[ ! -f $file || $file == "$source" ]] && continue
-        if grep -Fq "${url%/*}" "$file"; then die "Use the existing repository in $file manually."; fi
+        if grep -Fq "${url%/*}" "$file"; then
+            die "Use the existing repository in $file manually."
+        fi
     done
+
     curl --fail --location --silent --show-error "$url" --output "$temporary/key"
     printf '%s  %s\n' "$sha" "$temporary/key" | sha256sum --check --status
+
     printf 'deb [arch=%s signed-by=%s] %s\n' "$arch" "$key" "$repo" > "$temporary/source"
     chmod 644 "$temporary/key" "$temporary/source"
+
     publish "$temporary/key" "$key"
     publish "$temporary/source" "$source"
 }
+
 start_enabled() {
     local state
+
     state=$(systemctl is-enabled "$1" 2>/dev/null) || :
     case "$state" in
         enabled|enabled-runtime|static|indirect)
-            if ! systemctl is-active --quiet "$1"; then sudo systemctl start "$1"; fi ;;
-        disabled|masked*) echo "Manual action: $1 is $state; its startup policy is unchanged." ;;
-        *) die "Unexpected service state '$state': $1" ;;
+            if ! systemctl is-active --quiet "$1"; then
+                sudo systemctl start "$1"
+            fi
+            ;;
+        disabled|masked*)
+            echo "Manual action: $1 is $state; its startup policy is unchanged."
+            ;;
+        *)
+            die "Unexpected service state '$state': $1"
+            ;;
     esac
 }
