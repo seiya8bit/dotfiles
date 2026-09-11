@@ -35,6 +35,10 @@ try {
     & $chezmoi @options init
     Assert ($LASTEXITCODE -eq 0) 'Reinitialization did not reuse the Git identity.'
 
+    $ubuntuHook = Join-Path $checkout 'home/.chezmoiscripts/run_after_install-ubuntu-host.sh.tmpl'
+    $rendered = (& $chezmoi @options execute-template --file $ubuntuHook) -join "`n"
+    Assert ($LASTEXITCODE -eq 0 -and [string]::IsNullOrWhiteSpace($rendered)) 'Ubuntu host provisioning was enabled on Windows.'
+
     # Add only a command-boundary mock to the copied hook; run the real hook body.
     $hook = Join-Path $checkout 'home/.chezmoiscripts/run_onchange_after_install-windows-apps.ps1.tmpl'
     $mock = @'

@@ -61,6 +61,40 @@ After signing in, run `codex` from a project directory. See the [official authen
 Missing Tailscale installs through its [official installer](https://tailscale.com/install.sh) using sudo; sign in with `sudo tailscale up`.
 Keep project runtimes, SDKs and databases in containers.
 
+## Ubuntu host services
+
+Normal `chezmoi apply` uses sudo for missing host packages, verified APT keys/sources, Docker group membership
+and service startup. Run `chezmoi init` after updating so Ubuntu uses standard prompting without repeated hook
+confirmations. Configuration-only apply and previews execute no host operations.
+
+| Component | Installation |
+| --- | --- |
+| Docker, Compose, Buildx | [Docker stable APT](https://docs.docker.com/engine/install/ubuntu/): `docker-ce docker-ce-cli containerd.io docker-compose-plugin docker-buildx-plugin`. |
+| SSH | Ubuntu `openssh-server`; new installs use socket activation. Existing service/socket policy, configuration, keys and firewall rules remain. |
+| NVIDIA driver | Ubuntu `ubuntu-drivers list --gpgpu --recommended`, then APT installs the recommended signed modules and driver, without automatic DKMS fallback. Working drivers remain. |
+| GPU containers | NVIDIA stable APT `nvidia-container-toolkit-base`; the packaged [CDI refresh service](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/cdi-support.html) maintains device specifications. |
+
+[Docker 29.2+](https://docs.docker.com/engine/release-notes/29/#2920) supports `--gpus all` and [Compose 2.30+ `gpus: all`](https://docs.docker.com/reference/compose-file/services/#gpus)
+through native CDI, without editing `daemon.json` or registering a default NVIDIA runtime. Toolkit is installed
+before new Docker so its first daemon startup discovers the NVIDIA hook. Existing older Docker or custom/disabled
+CDI configurations need manual setup using their original package source; no automatic migration, upgrade or restart.
+Ubuntu 26.04 amd64 / arm64 SBSA are supported; no NVIDIA PCI GPU skips NVIDIA setup. WSL, Jetson/L4T,
+unsupported GPU/kernel recommendations and broken drivers stop with an explanation. Toolkit 1.18+ supplies CDI refresh.
+APT resolves dependencies and preserves conffiles; package scripts and required dependency updates can affect services.
+Existing keys/sources must match, conflicting packages are never removed, and disabled/masked units stay unchanged.
+Public keys are SHA-256 verified; review vendor key rotation before updating the hook's checksums. Actual failures fail apply;
+rerun after resolving them. Completed installations remain and do not repeat. Docker/SSH configuration files are never edited.
+
+Log out and back in for the **root-equivalent** [Docker group](https://docs.docker.com/engine/install/linux-postinstall/).
+Reboot after driver installation, enroll a Secure Boot key if requested, then rerun apply. If Toolkit was installed after
+Docker started, restart Docker manually in a maintenance window (or reboot) to activate `--gpus all`. Apply reports this
+using the daemon start time and hook installation time. Existing stopped enabled services may start; none are restarted.
+
+Verify after reboot/relogin: `docker run --rm hello-world`, `docker compose version`, `docker buildx version`,
+a new SSH connection, `nvidia-smi -L`, and `docker run --rm --gpus all ubuntu:26.04 nvidia-smi`.
+Host checks never start containers. Project CUDA compatibility, container images, clones, `.env`, data, models and
+credentials remain project-owned; no project Python, CUDA SDK or database is installed on the host.
+
 ## Personal settings and updates
 
 Change your Git identity with `chezmoi init --prompt`, then review and apply.
@@ -77,6 +111,7 @@ Use `chezmoi cd` to edit `home/` or `winget.json`. To retrieve and apply reposit
 
 ```sh
 chezmoi update --apply=false
+chezmoi init
 chezmoi diff
 chezmoi apply
 ```
@@ -98,3 +133,8 @@ Ubuntu checks: with Docker running and network access, run these commands in Pow
 docker build --tag dotfiles-verify .devcontainer
 docker run --rm --mount "type=bind,source=$PWD,target=/workspaces/dotfiles,readonly" dotfiles-verify bash tests/verify-ubuntu.sh
 ```
+
+Ubuntu checks use disposable command mocks, non-root execution, no real sudo and no Docker socket on amd64/arm64.
+They cover preview/configuration-only isolation, provisioning, retries, CDI, conflicts and failures. Real APT resolution,
+SSH connections, Secure Boot and GPU containers are **unverified**. Record tested OS/architecture/GPU/kernel/driver/Toolkit
+versions here after hardware acceptance; also confirm existing containers retain their ID/start time across apply.
