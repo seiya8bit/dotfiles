@@ -2,14 +2,21 @@
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $false
 Set-StrictMode -Version Latest
-if (!$IsWindows) { throw 'Use bash tests/verify-ubuntu.sh on Ubuntu.' }
+
+if (!$IsWindows) {
+    throw 'Use bash tests/verify-ubuntu.sh on Ubuntu.'
+}
+
 $repository = Split-Path -Parent $PSScriptRoot
 $chezmoi = (Get-Command chezmoi -CommandType Application -ErrorAction Stop).Source
 $null = Get-Content -LiteralPath (Join-Path $repository 'winget.json') -Raw | ConvertFrom-Json
 
 function Assert {
     param([bool]$Condition, [string]$Message)
-    if (!$Condition) { throw $Message }
+
+    if (!$Condition) {
+        throw $Message
+    }
 }
 
 $temporary = [IO.Directory]::CreateTempSubdirectory('dotfiles-verify-')
@@ -35,8 +42,12 @@ try {
     & $chezmoi @options init
     Assert ($LASTEXITCODE -eq 0) 'Reinitialization did not reuse the Git identity.'
 
+    $ubuntuHook = Join-Path $checkout 'home/.chezmoiscripts/ubuntu/run_after_setup-host.sh.tmpl'
+    $rendered = (& $chezmoi @options execute-template --file $ubuntuHook) -join "`n"
+    Assert ($LASTEXITCODE -eq 0 -and [string]::IsNullOrWhiteSpace($rendered)) 'Ubuntu host provisioning was enabled on Windows.'
+
     # Add only a command-boundary mock to the copied hook; run the real hook body.
-    $hook = Join-Path $checkout 'home/.chezmoiscripts/run_onchange_after_install-windows-apps.ps1.tmpl'
+    $hook = Join-Path $checkout 'home/.chezmoiscripts/windows/run_onchange_after_install-apps.ps1.tmpl'
     $mock = @'
 function winget.exe {
     $expected = @('import', '--import-file', (Join-Path $env:CHEZMOI_WORKING_TREE 'winget.json'),
@@ -45,7 +56,9 @@ function winget.exe {
         throw 'WinGet arguments changed.'
     }
     foreach ($path in '.gitconfig', 'Documents/PowerShell/profile.ps1') {
-        if (![IO.File]::Exists((Join-Path $env:CHEZMOI_DEST_DIR $path))) { throw 'Installer ran before configuration.' }
+        if (![IO.File]::Exists((Join-Path $env:CHEZMOI_DEST_DIR $path))) {
+            throw 'Installer ran before configuration.'
+        }
     }
     [IO.File]::AppendAllText((Join-Path $env:CHEZMOI_DEST_DIR 'imports'), "run`n")
     Write-Output 'WinGet output'
@@ -63,6 +76,9 @@ function winget.exe {
     Assert ($LASTEXITCODE -eq 0 -and ![IO.File]::Exists($gitconfig)) 'Preview changed the destination.'
     & $chezmoi @options apply --exclude scripts,externals
     Assert ($LASTEXITCODE -eq 0 -and ![IO.File]::Exists($imports)) 'Configuration-only apply installed apps.'
+    foreach ($directory in 'ubuntu', 'windows', 'ubuntu-host', '.chezmoiscripts', '.chezmoitemplates') {
+        Assert (!(Test-Path -LiteralPath (Join-Path $destination $directory))) 'Script/template directories were applied to the destination.'
+    }
     Assert (![IO.File]::Exists((Join-Path $destination '.bash_aliases'))) 'Ubuntu aliases were applied on Windows.'
     Assert ((& git config --file $gitconfig --get user.name) -ceq $name) 'Git name was not quoted correctly.'
     Assert ((& git config --file $gitconfig --get user.email) -ceq 'test@example.invalid') 'Git email changed.'
@@ -82,7 +98,9 @@ function winget.exe {
             . $profile
             Assert (($script:ShellInit -join ',') -ceq 'starship,zoxide') 'Shell initialization failed.'
             Assert ((Get-Alias cd).Definition -ceq $cdBefore) 'The profile changed cd.'
-        } finally { $env:PATH = $previousPath }
+        } finally {
+            $env:PATH = $previousPath
+        }
     }
 
     [IO.File]::Delete($profile)
@@ -107,7 +125,9 @@ function winget.exe {
                 $null = & $chezmoi @options apply --force 2>&1
                 Assert ($LASTEXITCODE -ne 0) "Accepted $kind at $relative."
                 Assert (![IO.File]::Exists($imports)) 'A conflict ran the installer.'
-                if ($relative -ne '.gitconfig') { Assert (![IO.File]::Exists($gitconfig)) 'A conflict changed configuration.' }
+                if ($relative -ne '.gitconfig') {
+                    Assert (![IO.File]::Exists($gitconfig)) 'A conflict changed configuration.'
+                }
                 Assert (@($linkTarget.EnumerateFileSystemInfos()).Count -eq 0) 'Apply wrote through a junction.'
                 if ($kind -eq 'Junction') {
                     Assert ((Get-Item -LiteralPath $conflict -Force).LinkType -eq 'Junction') 'A junction changed.'
@@ -117,8 +137,11 @@ function winget.exe {
                     Assert ([IO.Directory]::Exists($conflict)) 'An unmanaged directory changed.'
                 }
             } finally {
-                if ($directory) { [IO.Directory]::Delete($conflict) }
-                else { [IO.File]::Delete($conflict) }
+                if ($directory) {
+                    [IO.Directory]::Delete($conflict)
+                } else {
+                    [IO.File]::Delete($conflict)
+                }
             }
         }
     }

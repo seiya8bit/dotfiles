@@ -54,12 +54,42 @@ Log in again to keep `~/.local/bin` on PATH; run `zellij` to start a terminal se
 Ubuntu's default Bash configuration loads the managed `.bash_aliases`, which defines `zj` as `zellij`.
 Use `zj attach --create work` to create or reattach to a session, and `zj list-sessions` to list sessions.
 After applying alias changes, run `source ~/.bash_aliases` in existing Bash shells or open a new shell.
-Codex CLI 0.154.0 installs as your normal user without sudo or Node.js. Enable device code login in your
+Codex CLI installs as your normal user without sudo or Node.js. Enable device code login in your
 ChatGPT security settings or workspace permissions, then run `codex login --device-auth` on the server.
 Open the printed URL in a browser on another device and enter the one-time code there; the server needs no browser.
 After signing in, run `codex` from a project directory. See the [official authentication guide](https://learn.chatgpt.com/docs/auth#login-on-headless-devices).
 Missing Tailscale installs through its [official installer](https://tailscale.com/install.sh) using sudo; sign in with `sudo tailscale up`.
-Keep project runtimes, SDKs and databases in containers.
+
+## Ubuntu host services
+
+Normal `chezmoi apply` uses sudo to install missing packages and verified APT keys/sources, add you to the
+Docker group and start enabled services. Disabled/masked services stay unchanged; hooks never restart services or reboot.
+
+| Component | Installation |
+| --- | --- |
+| Docker, Compose, Buildx | [Docker stable APT](https://docs.docker.com/engine/install/ubuntu/); existing installations keep their package source. |
+| SSH | Ubuntu `openssh-server`, with socket activation on new installs. Existing settings, keys and firewall rules remain. |
+| NVIDIA driver | [Ubuntu's recommendation](https://documentation.ubuntu.com/server/how-to/graphics/install-nvidia-drivers/), with signed modules. Working drivers remain; no DKMS fallback. |
+| GPU containers | NVIDIA stable APT `nvidia-container-toolkit-base`, with automatic [CDI refresh](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/cdi-support.html). |
+
+GPU containers require [Docker 29.2+ `--gpus all`](https://docs.docker.com/engine/release-notes/29/#2920),
+[Compose 2.30+ `gpus: all`](https://docs.docker.com/reference/compose-file/services/#gpus) and Toolkit 1.18+ for native CDI.
+No NVIDIA PCI GPU skips NVIDIA setup. Automatic GPU setup supports amd64 / arm64 SBSA;
+WSL, Jetson/L4T, unsupported GPU/kernel recommendations and broken drivers stop with an explanation.
+
+APT resolves dependencies and preserves conffiles; [package operations can restart services](https://discourse.ubuntu.com/t/needrestart-changes-in-ubuntu-24-04-service-restarts/44671).
+Conflicting packages, settings and APT keys/sources require manual resolution. On failure, resolve the reported issue
+and rerun apply; completed installations do not repeat. After apply, follow the reported manual actions:
+
+- Log out and back in for the **root-equivalent** [Docker group](https://docs.docker.com/engine/install/linux-postinstall/).
+- Reboot after driver installation, enroll a Secure Boot key if requested, then rerun apply.
+- If Docker predates Toolkit, restart Docker in a maintenance window (or reboot) for `--gpus all`.
+  Older Docker or custom/disabled CDI needs manual setup using the original package source.
+
+Verify after reboot/relogin: `docker run --rm hello-world`, `docker compose version`, `docker buildx version`,
+a new SSH connection, `nvidia-smi -L`, and `docker run --rm --gpus all ubuntu:26.04 nvidia-smi`.
+Keep project runtimes, SDKs and databases in containers; project images, CUDA compatibility, clones, `.env`, data,
+models and credentials remain outside this repository.
 
 ## Personal settings and updates
 
@@ -70,13 +100,13 @@ Personal Codex settings, credentials and skills remain unmanaged.
 
 Ubuntu's Zellij and Codex versions are pinned in `home/.chezmoiexternal.toml`. To update a tool,
 change its release URL and both architecture SHA-256 checksums using the official release assets,
-update the matching versions in tests and this README, then run verification and review the diff before applying.
-Apply maintains these pinned versions.
+then run verification and review the diff before applying.
 
 Use `chezmoi cd` to edit `home/` or `winget.json`. To retrieve and apply repository updates:
 
 ```sh
 chezmoi update --apply=false
+chezmoi init
 chezmoi diff
 chezmoi apply
 ```
@@ -98,3 +128,7 @@ Ubuntu checks: with Docker running and network access, run these commands in Pow
 docker build --tag dotfiles-verify .devcontainer
 docker run --rm --mount "type=bind,source=$PWD,target=/workspaces/dotfiles,readonly" dotfiles-verify bash tests/verify-ubuntu.sh
 ```
+
+Ubuntu amd64/arm64 checks use disposable command mocks, non-root execution, no real sudo and no Docker socket.
+Real APT resolution, SSH, Secure Boot and GPU containers are **unverified**. After hardware acceptance, record the
+OS/architecture/GPU/kernel/driver/Toolkit versions here and check that existing containers retain their ID/start time across apply.

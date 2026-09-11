@@ -1,8 +1,12 @@
 {{ if eq .chezmoi.os "windows" -}}
 #Requires -Version 7.5
 $ErrorActionPreference = 'Stop'
+
 # winget.json: {{ include "../winget.json" | sha256sum }}
 winget.exe import --import-file (Join-Path $env:CHEZMOI_WORKING_TREE 'winget.json') --no-upgrade `
     --accept-package-agreements --accept-source-agreements --disable-interactivity
-if ($LASTEXITCODE -ne 0) { throw "WinGet import failed (exit $LASTEXITCODE)." }
+
+if ($LASTEXITCODE -ne 0) {
+    throw "WinGet import failed (exit $LASTEXITCODE)."
+}
 {{ end -}}
