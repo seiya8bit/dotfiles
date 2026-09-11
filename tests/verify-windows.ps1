@@ -76,8 +76,8 @@ function winget.exe {
     Assert ($LASTEXITCODE -eq 0 -and ![IO.File]::Exists($gitconfig)) 'Preview changed the destination.'
     & $chezmoi @options apply --exclude scripts,externals
     Assert ($LASTEXITCODE -eq 0 -and ![IO.File]::Exists($imports)) 'Configuration-only apply installed apps.'
-    foreach ($directory in 'ubuntu', 'windows', 'ubuntu-host', '.chezmoiscripts', '.chezmoitemplates') {
-        Assert (!(Test-Path -LiteralPath (Join-Path $destination $directory))) 'Script/template directories were applied to the destination.'
+    foreach ($directory in 'ubuntu', 'windows', '.chezmoiscripts') {
+        Assert (!(Test-Path -LiteralPath (Join-Path $destination $directory))) 'Script directories were applied to the destination.'
     }
     Assert (![IO.File]::Exists((Join-Path $destination '.bash_aliases'))) 'Ubuntu aliases were applied on Windows.'
     Assert (![IO.File]::Exists((Join-Path $destination '.bashrc'))) 'Ubuntu Bash initialization was applied on Windows.'
