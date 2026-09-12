@@ -7,9 +7,15 @@ Back up existing files and move conflicting files, directories or links before a
 ## Setup policy
 
 - Preserve data/settings and control disruption first, then repeatability and low maintenance. Use official tools and native package managers.
-- Full apply installs missing components through WinGet/APT and official installers; supervise package operations, which can restart services.
-- Keep existing settings, package sources and disabled/masked services. Hooks never restart services or reboot. Handle firmware, Secure Boot, upgrades and repairs manually; preserve OS security updates.
-- Use [configuration-only updates](#updates) routinely. Keep project runtimes, CUDA SDKs and databases in containers; credentials and personal agent settings stay outside this repository.
+- Delegate package validation and installation to WinGet using the single `winget.json` manifest on Windows and APT on Ubuntu. Full apply also uses official installers for missing components; propagate installation failures.
+- Preserve existing settings and package sources; stop on file/directory/link collisions before apply. Never automatically remove conflicting packages, force replacement of settings or change sudoers.
+- Hooks may initially start services, but never restart existing services or reboot. Leave disabled/masked services unchanged. Handle firmware, Secure Boot enrollment, login-session renewal, upgrades and repairs manually.
+- Necessary APT dependency updates and their package-standard service effects are allowed. Supervise package operations, which can restart services; preserve OS security updates.
+- Use [configuration-only updates](#updates) routinely. Keep project runtimes, SDKs and databases in containers; credentials and personal agent settings and skills stay outside this repository.
+
+On Ubuntu, run chezmoi as your normal user. Automated sudo is limited to installing missing Tailscale through its official stable installer;
+APT operations for zoxide, Docker Engine/Compose/Buildx, OpenSSH Server, NVIDIA drivers/Container Toolkit and required OS dependencies;
+verified Docker/NVIDIA APT key/source creation; adding only the invoking user to the Docker group; initial service startup and configuration/readiness checks.
 
 ## Windows
 
@@ -104,20 +110,26 @@ chezmoi apply --exclude scripts,externals
 ```
 
 Use full `chezmoi diff` and `chezmoi apply` only for intentional provisioning or pinned-binary updates during maintenance.
-Zellij/Codex pins live in `home/.chezmoiexternal.toml`; update official release URLs and both architecture SHA-256 checksums, then verify.
+Keep pinned downloads checksum-verified. Zellij/Codex pins live in `home/.chezmoiexternal.toml`;
+update official release URLs and both architecture SHA-256 checksums, then verify.
 
 Personal overrides: `~/.gitconfig.local` (included last), host-specific Windows `$PROFILE`, or outside Ubuntu's managed `.bashrc` block.
+Keep these unmanaged; automation must never create or import personal overrides. Manage Bash initialization in a marked block at the end of `.bashrc`,
+preserving content outside it; keep `.bash_aliases` for aliases.
 Change Git identity with `chezmoi init --prompt`, then review/apply. After Bash edits, `source ~/.bashrc` or open a new shell.
 
 ## Verification
 
-From the repository (`chezmoi cd`), run `./tests/verify-windows.ps1` on Windows. For Ubuntu checks, with Docker running:
+For behavior changes, run the affected platform checks from the repository (`chezmoi cd`). Run `./tests/verify-windows.ps1` on native Windows.
+For Ubuntu, use the same `.devcontainer/Dockerfile` as CI, with Docker running:
 
 ```sh
 docker build --tag dotfiles-verify .devcontainer
 docker run --rm --mount "type=bind,source=$PWD,target=/workspaces/dotfiles,readonly" dotfiles-verify bash tests/verify-ubuntu.sh
 ```
 
-Tests use disposable destinations and mocks; Ubuntu runs non-root without real sudo or a Docker socket.
+Tests use disposable destinations and mocked WinGet/Tailscale/host provisioning commands;
+Ubuntu runs non-root without real sudo or a Docker socket. Documentation-only edits need reference checks and `git diff --check`.
+Mock-test results and package installation do not establish service/GPU readiness.
 **Real APT, SSH, Secure Boot and GPU containers remain unverified.** Record hardware acceptance here with
 OS/architecture/GPU/kernel/driver/Toolkit versions and confirm existing containers retain their ID/start time across apply.
