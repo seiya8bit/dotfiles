@@ -1,13 +1,19 @@
 # Agent instructions
 
-- Apply Ponytail throughout planning, design, implementation, refactoring and review: prefer native features, readable code and fewer dependencies. Assess simplification by responsibility boundaries, dependencies and review scope; file counts and call counts alone do not justify merging. Consult official tool documentation.
-- Write English code, comments and docs; respond in the user's language. Document current setup and usage in `README.md` only.
-- Read the setup policy in `README.md` before recommending or changing setup. Recommend one default and explain material tradeoffs. A question about an alternative does not change policy; justify revisions with new requirements, verified upstream changes, corrected assumptions or reproducible problems. Follow explicit user decisions and update the policy accordingly.
-- Distinguish implementation, mock-test results and real-machine acceptance. Package installation does not establish service/GPU readiness, and a retry does not repair every partial installation.
+- Edit chezmoi sources in `home/`; preserve unmanaged files and personal overrides.
+- Always apply the Ponytail skill during planning, design, implementation, refactoring and review. Prefer native features, readable code and fewer dependencies; preserve clear responsibility boundaries when simplifying.
+- Write English code, comments and docs; respond in the user's language. Keep setup and usage documentation in `README.md` only.
 - Use Conventional Commits/Branch and squash merges; delete merged branches.
-- Edit chezmoi sources in `home/`. Preserve unmanaged files and reject file/directory/link collisions before apply. Keep `.gitconfig.local` included last and host-specific PowerShell profiles unmanaged; never create or import personal overrides.
-- Manage Ubuntu Bash initialization in a marked block at the end of `.bashrc`, preserving content outside the block. Keep `.bash_aliases` for aliases.
-- Configuration-only apply (`--exclude scripts,externals`) must not install apps or binaries or run scripts or sudo. Keep pinned downloads checksum-verified and propagate installation failures. Delegate package validation and installation to WinGet using one manifest on Windows and APT on Ubuntu.
-- Run Ubuntu Server 26.04 LTS chezmoi as a normal user. Automated sudo is limited to installing missing Tailscale through its official stable installer; APT operations for zoxide, Docker Engine/Compose/Buildx, OpenSSH Server, NVIDIA drivers/Container Toolkit and required OS dependencies; verified Docker/NVIDIA APT key/source creation; adding only the invoking user to the Docker group; initial service startup and configuration/readiness checks. Necessary APT dependency updates and their package-standard service effects are allowed. Never remove conflicting packages, force replacement of existing settings, change sudoers, restart existing services or reboot automatically. Keep disabled/masked services, Secure Boot enrollment and login-session renewal under manual control.
-- Keep project runtimes, SDKs and databases in containers, and personal agent settings and skills outside this repository.
-- Run `./tests/verify-windows.ps1` on native Windows and `bash tests/verify-ubuntu.sh` on Ubuntu with disposable destinations and mocked WinGet/Tailscale/host provisioning commands. Use the same `.devcontainer/Dockerfile` locally and in CI; run Ubuntu checks non-root, without real sudo or a Docker socket.
+
+## Task context
+
+- Setup recommendations or changes: follow [Setup policy](README.md#setup-policy), including the automation boundaries. Recommend one default and explain material tradeoffs. Revise policy for explicit user decisions or new evidence; discussing an alternative alone does not change it.
+- Configuration or pinned-version changes: follow [Updates](README.md#updates) for configuration-only apply, checksums and personal override boundaries.
+- Behavior changes: use [Verification](README.md#verification) for the affected platforms. Documentation-only edits need reference and diff checks.
+
+## Verification boundaries
+
+The documented tests use disposable destinations and mocked provisioning commands. You may run them, fix failures caused by the requested change,
+and rerun affected checks without asking for approval at each step. Preserve the documented test isolation.
+
+Report implementation, checks actually run and real-machine acceptance separately. Mock success or package installation does not establish service/GPU readiness.
