@@ -9,6 +9,9 @@ Back up existing files and move conflicting files, directories or links before a
 
 ## Setup policy
 
+<details>
+<summary>Automation policy and maintenance boundaries</summary>
+
 Prioritize preserving data and settings and controlling disruption, then repeatability and lower maintenance cost.
 Choose automation by official support and these priorities on both Windows and Ubuntu. Use native package managers,
 official tools and [idempotent chezmoi scripts](https://www.chezmoi.io/user-guide/use-scripts-to-perform-actions/);
@@ -26,6 +29,8 @@ add machinery only for a demonstrated requirement.
 Full `chezmoi apply` is for intentional provisioning or pinned-binary updates, with package operations and their service
 effects expected. Keep host setup supervised until [hardware acceptance](#verification) is recorded for the target
 configuration. Preserve existing settings and stop when compatibility or recovery is uncertain.
+
+</details>
 
 ## Windows setup
 
@@ -58,6 +63,16 @@ Manage app updates, sign-in and licenses manually. Enable VS Code's
 
 ## Ubuntu Server setup
 
+Follow steps 1–4. Installation is automatic; rebooting, signing in and checking the machine are manual.
+
+| Automatic during setup | You do afterward |
+| --- | --- |
+| Docker, Compose, Buildx and Docker group membership | Reboot or log in again, then test Docker **without sudo**. |
+| SSH, Tailscale, Codex, Zellij and zoxide | Check SSH and sign in to the tools you use. |
+| NVIDIA driver and Container Toolkit when an NVIDIA GPU is present | Reboot, rerun apply and check GPU access. |
+
+### 1. Install
+
 On Ubuntu Server 26.04 LTS, run as your normal user. The prerequisite packages require sudo:
 
 ```sh
@@ -70,25 +85,96 @@ chezmoi diff
 chezmoi apply
 ```
 
+If apply fails, resolve the reported error before continuing. Repeating apply does not repair every partial installation.
+
+### 2. Reboot or log in again
+
+**New NVIDIA driver installed (including a fresh RTX 4080 SUPER setup):** reboot, reconnect and rerun apply:
+
+```sh
+sudo reboot
+```
+
+After the server starts, reconnect over SSH or log in at its console, then run:
+
+```sh
+chezmoi apply
+```
+
+Complete Secure Boot key enrollment at the server console **only if requested**.
+The reboot also activates Docker group membership and restarts Docker after Toolkit installation.
+
+**No reboot needed:** run `exit`, then reconnect with your usual `ssh user@server` command,
+or log in again at the console. Do this from the login shell, outside Zellij or tmux.
+Opening a new shell or sourcing `.bashrc` alone does not refresh Docker group membership.
+
+Follow any remaining manual actions printed by apply. On an existing server, schedule requested Docker restarts
+or reboots around running workloads. Docker group membership grants **root-equivalent** access.
+
+### 3. Check Docker, SSH and your GPU
+
+Run these as your normal user, **without sudo**, in the new login session:
+
+```sh
+docker run --rm hello-world
+docker compose version
+docker buildx version
+```
+
+Expect `Hello from Docker!` and two version outputs. No manual Docker group setup is needed after a successful apply.
+Also open a new SSH connection from another machine to verify remote access.
+
+**NVIDIA GPU only:**
+
+```sh
+nvidia-ctk cdi list
+```
+
+Expect `nvidia.com/gpu=all`. If `nvidia-smi` is installed, also run:
+
+```sh
+nvidia-smi -L
+docker run --rm --gpus all ubuntu:26.04 nvidia-smi
+```
+
+Both should show your GPU (for example, RTX 4080 SUPER). If a check fails, inspect its error before proceeding.
+These checks confirm GPU visibility; test actual CUDA workloads separately in your project's containers.
+Keep CUDA SDKs, project runtimes and databases in containers. Prepare project clones, `.env`, data, models
+and credentials separately.
+
+### 4. Sign in and start working
+
+Run the commands for the tools you use:
+
+| Tool | Command | Next action |
+| --- | --- | --- |
+| Tailscale | `sudo tailscale up` | Follow the sign-in link. |
+| Codex | `codex login --device-auth` | Enable device code login in ChatGPT security settings or workspace permissions; open the printed URL on another device and enter the code. |
+| Zellij | `zj attach --create work` | Start or reattach to your terminal session. |
+
+After signing in, run `codex` from a project directory. Use `z` to revisit directories.
+See the [Codex authentication guide](https://learn.chatgpt.com/docs/auth#login-on-headless-devices).
+
+<details>
+<summary>Shell configuration and installation details</summary>
+
 chezmoi uses umask `022`: managed regular files use `0644`, and managed directories and executables use `0755`,
 regardless of your shell's umask.
 
-Log in again to keep `~/.local/bin` on PATH; run `zellij` to start a terminal session.
 Ubuntu's default Bash configuration loads the managed `.bash_aliases`, which defines `zj` as `zellij`.
 Apply installs [zoxide from Ubuntu APT](https://packages.ubuntu.com/resolute/zoxide) if missing;
 chezmoi manages a marked initialization block at the end of `.bashrc`, preserving all content outside that block.
 A missing `.bashrc` starts from Ubuntu's `/etc/skel/.bashrc`. Keep personal settings outside the marked block;
 apply moves the block after any later additions. Interactive Bash initializes zoxide when available, keeping `cd` unchanged.
-Use `z` to revisit directories.
-Use `zj attach --create work` to create or reattach to a session, and `zj list-sessions` to list sessions.
+Use `zj list-sessions` to list terminal sessions.
 After applying Bash configuration changes, run `source ~/.bashrc` in existing interactive shells or open a new shell.
-Codex CLI installs as your normal user without sudo or Node.js. Enable device code login in your
-ChatGPT security settings or workspace permissions, then run `codex login --device-auth` on the server.
-Open the printed URL in a browser on another device and enter the one-time code there; the server needs no browser.
-After signing in, run `codex` from a project directory. See the [official authentication guide](https://learn.chatgpt.com/docs/auth#login-on-headless-devices).
-Missing Tailscale installs through its [official installer](https://tailscale.com/install.sh) using sudo; sign in with `sudo tailscale up`.
+Codex CLI installs as your normal user without sudo or Node.js; the server needs no browser for authentication.
+Missing Tailscale installs through its [official installer](https://tailscale.com/install.sh) using sudo.
 
-## Ubuntu host services
+</details>
+
+<details>
+<summary>Ubuntu host services: package sources, compatibility and recovery</summary>
 
 Full `chezmoi apply` uses sudo to install missing packages and verified APT keys/sources, add you to the
 Docker group and start enabled services. Disabled/masked services stay unchanged; hooks never restart services or reboot.
@@ -115,18 +201,11 @@ APT resolves dependencies and preserves conffiles; [package operations can resta
 Conflicts and partial installations require manual resolution before reapplying; completed packages normally stay installed.
 If NVIDIA signed modules install but the driver package fails, the existing-driver guard stops the next apply. Inspect
 the APT error and repair using the Ubuntu driver instructions above; keep the guard and avoid automatic package removal.
-After apply, follow the reported manual actions:
+If Docker predates Toolkit, restart Docker in a maintenance window (or reboot) for `--gpus all`.
+Older Docker or custom/disabled CDI needs manual setup using the original package source.
+See [Docker's post-installation guidance](https://docs.docker.com/engine/install/linux-postinstall/) for group permissions.
 
-- Log out and back in for the **root-equivalent** [Docker group](https://docs.docker.com/engine/install/linux-postinstall/).
-- Reboot after driver installation, enroll a Secure Boot key if requested, then rerun apply.
-- If Docker predates Toolkit, restart Docker in a maintenance window (or reboot) for `--gpus all`.
-  Older Docker or custom/disabled CDI needs manual setup using the original package source.
-
-Verify after reboot/relogin: `docker run --rm hello-world`, `docker compose version`, `docker buildx version`
-and a new SSH connection. For NVIDIA GPUs, run `nvidia-ctk cdi list`. If `nvidia-smi` is installed, also run `nvidia-smi -L` and
-`docker run --rm --gpus all ubuntu:26.04 nvidia-smi`. Test CUDA workloads separately in the project's containers.
-Keep project runtimes, SDKs and databases in containers; project images, CUDA compatibility, clones, `.env`, data,
-models and credentials remain outside this repository.
+</details>
 
 ## Personal settings and updates
 
