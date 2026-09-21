@@ -15,7 +15,7 @@
         { "PackageIdentifier": "ajeetdsouza.zoxide" },
 
         { "PackageIdentifier": "OpenAI.Codex" },
-        { "PackageIdentifier": "Ollama.Ollama" },
+        { "PackageIdentifier": "SST.opencode" },
 
         { "PackageIdentifier": "Google.Chrome" },
         { "PackageIdentifier": "Discord.Discord" },
