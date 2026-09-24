@@ -44,27 +44,40 @@ if "${chezmoi[@]}" --override-data '{"chezmoi":{"arch":"riscv64"}}' execute-temp
     echo 'An unsupported architecture must fail.' >&2
     exit 1
 fi
-grep -q 'Zellij and Codex require Ubuntu amd64 or arm64' "$temporary/arch.log"
+grep -q 'Zellij, Codex, Claude Code and OpenCode require Ubuntu amd64 or arm64' "$temporary/arch.log"
+"${chezmoi[@]}" --override-data '{"chezmoi":{"arch":"arm64"}}' execute-template --file "$external" > "$temporary/arm64-external.toml"
+grep -Fq '2.1.274/linux-arm64/claude' "$temporary/arm64-external.toml"
+grep -Fq '2db904daea17addff9de557ba26a725916888aa7b546e2c5dd989c20d9d49ab3' "$temporary/arm64-external.toml"
+grep -Fq 'opencode-linux-arm64.tar.gz' "$temporary/arm64-external.toml"
+grep -Fq 'c074bec6fd05256aaa44525a9986418626e0045994437f30e82b3ece092919d8' "$temporary/arm64-external.toml"
 
-binaries=("$destination/.local/bin/zellij" "$destination/.local/bin/codex")
+binaries=("$destination/.local/bin/zellij" "$destination/.local/bin/codex" "$destination/.local/bin/claude" "$destination/.local/bin/opencode")
+failed_destination="$temporary/failed-external-home"
+mkdir -p "$failed_destination"
 cp "$external" "$temporary/external.toml"
-for tool in zellij codex; do
+for tool in zellij codex claude opencode; do
     # Change only this tool's URL so a sibling cannot mask a broken checksum check.
-    sed -i "\|^\[\".local/bin/$tool\"\]|,/^$/s|^url = .*|url = \"https://127.0.0.1:1/$tool.tar.gz\"|" "$external"
-    if "${chezmoi[@]}" apply --exclude scripts > "$temporary/download.log" 2>&1; then
+    sed -i "\|^\[\".local/bin/$tool\"\]|,/^$/s|^url = .*|url = \"https://127.0.0.1:1/$tool\"|" "$external"
+    if "${chezmoi[@]}" --destination "$failed_destination" apply --exclude scripts > "$temporary/download.log" 2>&1; then
         echo "A failed $tool download must fail apply." >&2
         exit 1
     fi
-    grep -Fq "127.0.0.1:1/$tool.tar.gz" "$temporary/download.log"
-    for binary in "${binaries[@]}"; do
-        test ! -e "$binary"
-    done
+    grep -Fq "127.0.0.1:1/$tool" "$temporary/download.log" || {
+        cat "$temporary/download.log" >&2
+        exit 1
+    }
+    test ! -e "$failed_destination/.local/bin/$tool"
 
     cp "$temporary/external.toml" "$external"
     printf '#!/bin/sh\necho untrusted\n' > "$temporary/$tool"
-    tar -czf "$temporary/$tool.tar.gz" -C "$temporary" "$tool"
-    sed -i "\|^\[\".local/bin/$tool\"\]|,/^$/s|^url = .*|url = \"file://$temporary/$tool.tar.gz\"|" "$external"
-    if "${chezmoi[@]}" apply --exclude scripts > "$temporary/checksum.log" 2>&1; then
+    if [[ $tool == claude ]]; then
+        replacement="$temporary/$tool"
+    else
+        tar -czf "$temporary/$tool.tar.gz" -C "$temporary" "$tool"
+        replacement="$temporary/$tool.tar.gz"
+    fi
+    sed -i "\|^\[\".local/bin/$tool\"\]|,/^$/s|^url = .*|url = \"file://$replacement\"|" "$external"
+    if "${chezmoi[@]}" --destination "$failed_destination" apply --exclude scripts > "$temporary/checksum.log" 2>&1; then
         echo "A mismatched $tool checksum must fail apply." >&2
         exit 1
     fi
@@ -72,10 +85,10 @@ for tool in zellij codex; do
         cat "$temporary/checksum.log" >&2
         exit 1
     }
-    for binary in "${binaries[@]}"; do
-        test ! -e "$binary"
-    done
+    test ! -e "$failed_destination/.local/bin/$tool"
     cp "$temporary/external.toml" "$external"
+    rm -rf "$failed_destination"
+    mkdir -p "$failed_destination"
 done
 
 # Mock only the disposable host hook; no real sudo or Docker socket enters this container.
@@ -169,15 +182,19 @@ cp "$destination/.gitconfig.local" "$temporary/expected-local"
 
 mkdir -p "$destination/Documents/PowerShell"
 printf '# Unmanaged profile\n' > "$destination/Documents/PowerShell/profile.ps1"
-mkdir -p "$destination/.codex" "$destination/.agents/skills/personal"
+mkdir -p "$destination/.codex" "$destination/.agents/skills/personal" "$destination/.claude" "$destination/.config/opencode"
 printf '# Unmanaged Codex settings\n' > "$destination/.codex/config.toml"
 printf '{"test":"unmanaged credential fixture"}\n' > "$destination/.codex/auth.json"
 printf '# Unmanaged skill\n' > "$destination/.agents/skills/personal/SKILL.md"
+printf '# Unmanaged Claude settings\n' > "$destination/.claude/settings.json"
+printf '{"test":"unmanaged OpenCode settings"}\n' > "$destination/.config/opencode/opencode.json"
 cp -R "$destination/.codex" "$temporary/expected-codex"
+cp -R "$destination/.claude" "$temporary/expected-claude"
+cp -R "$destination/.config/opencode" "$temporary/expected-opencode"
 
 # Reject every managed file and ancestor collision before writing any configuration.
 mkdir "$temporary/link-target"
-for relative in .bash_aliases .bashrc .gitconfig .local .local/bin .local/bin/zellij .local/bin/codex; do
+for relative in .bash_aliases .bashrc .gitconfig .local .local/bin .local/bin/zellij .local/bin/codex .local/bin/claude .local/bin/opencode; do
     conflict="$temporary/conflict-home/$relative"
     mkdir -p "$(dirname "$conflict")"
     for kind in link collision; do
@@ -231,6 +248,8 @@ zellij_version=$("${binaries[0]}" --version)
 test "$(HOME="$destination" PATH="$destination/.local/bin:$PATH" bash --noprofile --rcfile "$destination/.bashrc" \
     -ic 'zj --version' 2>"$temporary/bash.log")" = "$zellij_version"
 HOME="$destination" CODEX_HOME="$destination/.codex" "${binaries[1]}" --version | grep -E '^codex-cli [0-9]'
+HOME="$destination" "${binaries[2]}" --version | grep -F '2.1.274'
+HOME="$destination" "${binaries[3]}" --version | grep -E '2\.0\.6'
 HTTPS_PROXY=http://127.0.0.1:1 "${chezmoi[@]}" apply
 
 printf '#!/bin/sh\necho modified\n' > "$temporary/modified-binary"
@@ -300,6 +319,8 @@ grep -qx '# Personal shell settings' "$destination/.bashrc"
 grep -qx 'PROMPT_COMMAND=custom' "$destination/.bashrc"
 cmp "$temporary/expected-codex/config.toml" "$destination/.codex/config.toml"
 cmp "$temporary/expected-codex/auth.json" "$destination/.codex/auth.json"
+cmp "$temporary/expected-claude/settings.json" "$destination/.claude/settings.json"
+cmp "$temporary/expected-opencode/opencode.json" "$destination/.config/opencode/opencode.json"
 grep -qx '# Unmanaged skill' "$destination/.agents/skills/personal/SKILL.md"
 echo 'Ubuntu: identity, configuration, externals, retries, conflicts and preservation passed.'
 

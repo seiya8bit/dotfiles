@@ -2,7 +2,8 @@
 {{ if and (eq .chezmoi.os "linux") (eq .chezmoi.osRelease.id "ubuntu") -}}
 {{ $paths = merge $paths (dict
     ".bash_aliases" "file" ".bashrc" "file"
-    ".local" "dir" ".local/bin" "dir" ".local/bin/zellij" "file" ".local/bin/codex" "file") -}}
+    ".local" "dir" ".local/bin" "dir" ".local/bin/zellij" "file" ".local/bin/codex" "file"
+    ".local/bin/claude" "file" ".local/bin/opencode" "file") -}}
 {{ else -}}
 .bash_aliases
 .bashrc
