@@ -7,7 +7,9 @@ Back up existing files and move conflicting files, directories or links before a
 ## Setup policy
 
 - Preserve data/settings and control disruption first, then repeatability and low maintenance. Use official tools and native package managers.
-- Delegate package validation and installation to WinGet using the single `winget.json` manifest on Windows and APT on Ubuntu. Full apply also uses official installers for missing components and checksum-pinned user binaries via chezmoi externals; propagate installation failures.
+- chezmoi owns configuration, not software versions. WinGet (`winget.json`) and APT install packages; official installers install other missing tools once,
+  then each tool's own updater or package source owns updates. Pin a checksum-verified download in `home/.chezmoiexternal.toml` only when a tool has
+  neither (currently Zellij). Never replace existing installations or disable vendor updates; propagate installation failures.
 - Preserve existing settings and package sources; stop on file/directory/link collisions before apply. Never automatically remove conflicting packages, force replacement of settings or change sudoers.
 - Hooks may initially start services, but never restart existing services or reboot. Leave disabled/masked services unchanged. Handle firmware, Secure Boot enrollment, login-session renewal, upgrades and repairs manually.
 - Necessary APT dependency updates and their package-standard service effects are allowed. Supervise package operations, which can restart services; preserve OS security updates.
@@ -45,8 +47,8 @@ check `docker run --rm hello-world`. Sign in to apps and enable VS Code Settings
 
 ### 1. Install as your normal user
 
-Automatically installs Docker/Compose/Buildx, SSH, Tailscale, Codex, Claude Code, OpenCode V2, Zellij and zoxide.
-The three agent CLIs install for the normal user via checksum-pinned chezmoi externals, without Node.js or global npm packages.
+Automatically installs Docker/Compose/Buildx, SSH, Tailscale, Codex, Claude Code, OpenCode, Zellij and zoxide.
+Missing agent CLIs install with their official installers into `~/.local/bin` (OpenCode is linked there) and update themselves.
 Adds you to the **root-equivalent Docker group** for use without sudo; installs NVIDIA drivers/Toolkit when an NVIDIA GPU is present.
 
 ```sh
@@ -98,7 +100,7 @@ Automatic GPU setup supports amd64/arm64 SBSA, not WSL or Jetson/L4T; unsupporte
 | Tailscale | `sudo tailscale up`; follow the sign-in link. |
 | Codex | Enable device code login in ChatGPT security/workspace settings, then `codex login --device-auth`; open the URL and enter the code on another device. Run `codex` in your project. |
 | Claude Code | Run `claude` in your project, sign in with a supported account, and open the displayed URL on another device. If prompted, paste the authorization code into the SSH terminal. |
-| OpenCode V2 | Run `opencode` in your project; use `/connect` to select and authenticate a provider. Open the displayed URL on another device when needed. |
+| OpenCode | Run `opencode` in your project; use `/connect` to select and authenticate a provider. Open the displayed URL on another device when needed. |
 | Zellij | `zj attach --create work` creates or resumes a session. |
 | zoxide | `z` revisits directories; `cd` stays unchanged. |
 
@@ -115,15 +117,10 @@ chezmoi diff --exclude scripts,externals
 chezmoi apply --exclude scripts,externals
 ```
 
-Use full `chezmoi diff` and `chezmoi apply` only for intentional provisioning or pinned-binary updates during maintenance.
-Keep pinned downloads checksum-verified. Zellij/Codex/Claude Code/OpenCode V2 pins live in `home/.chezmoiexternal.toml`;
-update official release URLs and both architecture SHA-256 checksums, then verify. The x64 OpenCode build uses
-the baseline variant for CPUs without AVX2. Claude Code is pinned to a release from Anthropic's stable channel;
-its version is updated through chezmoi rather than the native installer. If an existing native installation owns
-`~/.local/bin/claude`, move that launcher manually before full apply; chezmoi stops on a link or directory collision.
-Keep agent credentials and personal settings unmanaged. After installation, disable self-updates so they cannot
-replace the pinned binaries: merge `"env": {"DISABLE_AUTOUPDATER": "1"}` into `~/.claude/settings.json` and
-`"autoupdate": false` into `~/.config/opencode/opencode.json`. Review the new version with `chezmoi diff` and use full `chezmoi apply` when intentionally updating pins.
+Use full `chezmoi diff` and `chezmoi apply` only for intentional provisioning or Zellij pin updates during maintenance.
+To update Zellij, change the release URL and both architecture SHA-256 checksums in `home/.chezmoiexternal.toml`, then verify.
+Other tools update through their own updater or package source; full apply never upgrades or replaces an existing command.
+Keep agent credentials and personal settings unmanaged.
 
 Personal overrides: `~/.gitconfig.local` (included last), host-specific Windows `$PROFILE`, or outside Ubuntu's managed `.bashrc` block.
 Keep these unmanaged; automation must never create or import personal overrides. Manage Bash initialization in a marked block at the end of `.bashrc`,

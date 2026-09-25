@@ -1,43 +1,16 @@
 {{ if and (eq .chezmoi.os "linux") (eq .chezmoi.osRelease.id "ubuntu") -}}
-{{ $releases := dict
-    "amd64" (dict "arch" "x86_64"
-        "zellijSha" "40bcc2e03f5d5ae8e054e39f676081fe12ab70871506996ba595834c3718eefc"
-        "codexSha" "d7e18b2597ae8f242f5f31ee9e90deef48dbc9edd634d9868fb6435d08c07f02"
-        "claudeArch" "x64" "claudeSha" "15e2d05148f801b5774032faad87e624ecd172e9903288bda448b892eb58fa07"
-        "opencodeArch" "x64-baseline" "opencodeSha" "228deae7b0c7d604ba236956da246e1c5109bc9269b327d0208240599490689c")
-    "arm64" (dict "arch" "aarch64"
-        "zellijSha" "05f0802afadd53f8db9514e7cae53c9ae8432fed1b35b8294aa816ee3044a16b"
-        "codexSha" "583b48df32804213bdcd338c2e5adb06b34340821fa757a726cc0a524fa33c27"
-        "claudeArch" "arm64" "claudeSha" "2db904daea17addff9de557ba26a725916888aa7b546e2c5dd989c20d9d49ab3"
-        "opencodeArch" "arm64" "opencodeSha" "c074bec6fd05256aaa44525a9986418626e0045994437f30e82b3ece092919d8") -}}
-{{ $release := index $releases .chezmoi.arch -}}
+{{/* Zellij has neither an Ubuntu package nor a self-updater, so it is the only pinned download. */ -}}
+{{ $zellij := dict
+    "amd64" (dict "arch" "x86_64" "sha" "40bcc2e03f5d5ae8e054e39f676081fe12ab70871506996ba595834c3718eefc")
+    "arm64" (dict "arch" "aarch64" "sha" "05f0802afadd53f8db9514e7cae53c9ae8432fed1b35b8294aa816ee3044a16b") -}}
+{{ $release := index $zellij .chezmoi.arch -}}
 {{ if not $release -}}
-{{ fail "Zellij, Codex, Claude Code and OpenCode require Ubuntu amd64 or arm64" -}}
+{{ fail "Zellij requires Ubuntu amd64 or arm64" -}}
 {{ end -}}
 [".local/bin/zellij"]
 type = "archive-file"
 url = "https://github.com/zellij-org/zellij/releases/download/v0.45.1/zellij-{{ $release.arch }}-unknown-linux-musl.tar.gz"
 path = "zellij"
 executable = true
-checksum.sha256 = "{{ $release.zellijSha }}"
-
-[".local/bin/codex"]
-type = "archive-file"
-url = "https://github.com/openai/codex/releases/download/rust-v0.154.0/codex-{{ $release.arch }}-unknown-linux-musl.tar.gz"
-path = "codex-{{ $release.arch }}-unknown-linux-musl"
-executable = true
-checksum.sha256 = "{{ $release.codexSha }}"
-
-[".local/bin/claude"]
-type = "file"
-url = "https://downloads.claude.ai/claude-code-releases/2.1.274/linux-{{ $release.claudeArch }}/claude"
-executable = true
-checksum.sha256 = "{{ $release.claudeSha }}"
-
-[".local/bin/opencode"]
-type = "archive-file"
-url = "https://opencode.ai/files/bin/2.0.6/opencode-linux-{{ $release.opencodeArch }}.tar.gz"
-path = "opencode"
-executable = true
-checksum.sha256 = "{{ $release.opencodeSha }}"
+checksum.sha256 = "{{ $release.sha }}"
 {{ end -}}

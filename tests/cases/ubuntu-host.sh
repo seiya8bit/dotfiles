@@ -46,6 +46,8 @@ for gpu in '' 'NVIDIA display-class PCI device'; do
     # A repeated apply performs only the read-only SSH check while awaiting reboot.
     test "$(cat "$s/sudo")" = '/usr/sbin/sshd -G'
 done
+grep -Fxq "deb [arch=$(dpkg --print-architecture) signed-by=$s/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu resolute stable" \
+    "$s/etc/apt/sources.list.d/docker.list"
 
 rm "$s/run/reboot-required.pkgs"
 mkdir -p "$s/etc/docker" "$s/etc/ssh"
