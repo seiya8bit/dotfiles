@@ -1,19 +1,8 @@
 # Agent instructions
 
 - Edit chezmoi sources in `home/`; preserve unmanaged files and personal overrides.
-- Always apply the Ponytail skill during planning, design, implementation, refactoring and review. Prefer native features, readable code and fewer dependencies; preserve clear responsibility boundaries when simplifying.
-- Write English code, comments and docs; respond in the user's language. Keep setup and usage documentation in `README.md` only.
-- Use Conventional Commits/Branch and squash merges; delete merged branches.
-
-## Task context
-
-- Setup recommendations or changes: follow [Setup policy](README.md#setup-policy), including the automation boundaries. Recommend one default and explain material tradeoffs. Revise policy for explicit user decisions or new evidence; discussing an alternative alone does not change it.
-- Configuration or pinned-version changes: follow [Updates](README.md#updates) for configuration-only apply, checksums and personal override boundaries.
-- Behavior changes: use [Verification](README.md#verification) for the affected platforms. Documentation-only edits need reference and diff checks.
-
-## Verification boundaries
-
-The documented tests use disposable destinations and mocked provisioning commands. You may run them, fix failures caused by the requested change,
-and rerun affected checks without asking for approval at each step. Preserve the documented test isolation.
-
-Report implementation, checks actually run and real-machine acceptance separately. Mock success or package installation does not establish service/GPU readiness.
+- Always apply the Ponytail skill (or its principles, if unavailable) during planning, implementation and review, keeping clear responsibility boundaries.
+- Write English code and docs; respond in the user's language. Setup and usage docs live only in `README.md`.
+- Use Conventional Commits/branches and squash merges; delete merged branches.
+- Follow README's [Setup policy](README.md#setup-policy), [Updates](README.md#updates) and [Verification](README.md#verification). Recommend one default with material tradeoffs; change policy only on explicit user decisions or new evidence.
+- You may run the documented tests, fix failures your change causes and rerun them without asking. Report implementation, checks run and real-machine acceptance separately.
