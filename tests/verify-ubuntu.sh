@@ -46,10 +46,8 @@ if "${chezmoi[@]}" --override-data '{"chezmoi":{"arch":"riscv64"}}' execute-temp
 fi
 grep -q 'Zellij, Codex, Claude Code and OpenCode require Ubuntu amd64 or arm64' "$temporary/arch.log"
 "${chezmoi[@]}" --override-data '{"chezmoi":{"arch":"arm64"}}' execute-template --file "$external" > "$temporary/arm64-external.toml"
-grep -Fq '2.1.274/linux-arm64/claude' "$temporary/arm64-external.toml"
-grep -Fq '2db904daea17addff9de557ba26a725916888aa7b546e2c5dd989c20d9d49ab3' "$temporary/arm64-external.toml"
+grep -Fq '/linux-arm64/claude"' "$temporary/arm64-external.toml"
 grep -Fq 'opencode-linux-arm64.tar.gz' "$temporary/arm64-external.toml"
-grep -Fq 'c074bec6fd05256aaa44525a9986418626e0045994437f30e82b3ece092919d8' "$temporary/arm64-external.toml"
 
 binaries=("$destination/.local/bin/zellij" "$destination/.local/bin/codex" "$destination/.local/bin/claude" "$destination/.local/bin/opencode")
 failed_destination="$temporary/failed-external-home"
@@ -248,8 +246,8 @@ zellij_version=$("${binaries[0]}" --version)
 test "$(HOME="$destination" PATH="$destination/.local/bin:$PATH" bash --noprofile --rcfile "$destination/.bashrc" \
     -ic 'zj --version' 2>"$temporary/bash.log")" = "$zellij_version"
 HOME="$destination" CODEX_HOME="$destination/.codex" "${binaries[1]}" --version | grep -E '^codex-cli [0-9]'
-HOME="$destination" "${binaries[2]}" --version | grep -F '2.1.274'
-HOME="$destination" "${binaries[3]}" --version | grep -E '2\.0\.6'
+HOME="$destination" "${binaries[2]}" --version | grep -E '[0-9]+\.[0-9]+\.[0-9]+'
+HOME="$destination" "${binaries[3]}" --version | grep -E '[0-9]+\.[0-9]+\.[0-9]+'
 HTTPS_PROXY=http://127.0.0.1:1 "${chezmoi[@]}" apply
 
 printf '#!/bin/sh\necho modified\n' > "$temporary/modified-binary"

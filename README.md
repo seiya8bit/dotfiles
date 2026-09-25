@@ -121,9 +121,9 @@ update official release URLs and both architecture SHA-256 checksums, then verif
 the baseline variant for CPUs without AVX2. Claude Code is pinned to a release from Anthropic's stable channel;
 its version is updated through chezmoi rather than the native installer. If an existing native installation owns
 `~/.local/bin/claude`, move that launcher manually before full apply; chezmoi stops on a link or directory collision.
-Keep Claude credentials and personal settings unmanaged. To avoid redundant background downloads with this pinned
-binary, set `"env": {"DISABLE_AUTOUPDATER": "1"}` in your personal `~/.claude/settings.json` (merge with existing
-settings). Review the new version with `chezmoi diff` and use full `chezmoi apply` when intentionally updating pins.
+Keep agent credentials and personal settings unmanaged. After installation, disable self-updates so they cannot
+replace the pinned binaries: merge `"env": {"DISABLE_AUTOUPDATER": "1"}` into `~/.claude/settings.json` and
+`"autoupdate": false` into `~/.config/opencode/opencode.json`. Review the new version with `chezmoi diff` and use full `chezmoi apply` when intentionally updating pins.
 
 Personal overrides: `~/.gitconfig.local` (included last), host-specific Windows `$PROFILE`, or outside Ubuntu's managed `.bashrc` block.
 Keep these unmanaged; automation must never create or import personal overrides. Manage Bash initialization in a marked block at the end of `.bashrc`,
