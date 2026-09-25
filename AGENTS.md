@@ -1,7 +1,7 @@
 # Agent instructions
 
 - Edit chezmoi sources in `home/`; preserve unmanaged files and personal overrides.
-- Always apply the Ponytail skill during planning, design, implementation, refactoring and review. Prefer native features, readable code and fewer dependencies; preserve clear responsibility boundaries when simplifying.
+- Always apply the Ponytail skill during planning, design, implementation, refactoring and review; where the skill is unavailable, apply its principles directly. Prefer native features, readable code and fewer dependencies; preserve clear responsibility boundaries when simplifying.
 - Write English code, comments and docs; respond in the user's language. Keep setup and usage documentation in `README.md` only.
 - Use Conventional Commits/Branch and squash merges; delete merged branches.
 
