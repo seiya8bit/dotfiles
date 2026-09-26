@@ -23,6 +23,8 @@ chezmoi=("$chezmoi_bin" --config "$temporary/config.toml" --destination "$destin
 config_only=(--exclude 'scripts,externals')
 
 mkdir -p "$checkout" "$destination/.local/bin" "$temporary/bin"
+# Hooks install into $HOME; keep them inside the disposable destination.
+export HOME="$destination"
 chmod 755 "$destination/.local" "$destination/.local/bin"
 cp "$repository/.chezmoiroot" "$repository/.chezmoiversion" "$checkout/"
 cp -R "$repository/home" "$checkout/home"
@@ -30,12 +32,12 @@ cp -R "$repository/home" "$checkout/home"
 "${chezmoi[@]}" init
 
 external="$checkout/home/.chezmoiexternal.toml"
-tailscale_hook="$checkout/home/.chezmoiscripts/ubuntu/run_onchange_after_install-tailscale.sh.tmpl"
-"${chezmoi[@]}" execute-template --file "$tailscale_hook" | shellcheck -
+tools_hook="$checkout/home/.chezmoiscripts/ubuntu/run_after_install-tools.sh.tmpl"
+"${chezmoi[@]}" execute-template --file "$tools_hook" | shellcheck -
 host_hook="$checkout/home/.chezmoiscripts/ubuntu/run_after_setup-host.sh.tmpl"
 "${chezmoi[@]}" execute-template --file "$host_hook" | shellcheck -
 
-for source in "$external" "$tailscale_hook" "$host_hook"; do
+for source in "$external" "$tools_hook" "$host_hook"; do
     test -z "$("${chezmoi[@]}" --override-data '{"chezmoi":{"os":"windows"}}' execute-template --file "$source")"
     test -z "$("${chezmoi[@]}" --override-data '{"chezmoi":{"osRelease":{"id":"debian"}}}' execute-template --file "$source")"
 done
@@ -44,44 +46,32 @@ if "${chezmoi[@]}" --override-data '{"chezmoi":{"arch":"riscv64"}}' execute-temp
     echo 'An unsupported architecture must fail.' >&2
     exit 1
 fi
-grep -q 'Zellij and Codex require Ubuntu amd64 or arm64' "$temporary/arch.log"
+grep -q 'Zellij requires Ubuntu amd64 or arm64' "$temporary/arch.log"
 
-binaries=("$destination/.local/bin/zellij" "$destination/.local/bin/codex")
+zellij="$destination/.local/bin/zellij"
+failed_destination="$temporary/failed-external-home"
 cp "$external" "$temporary/external.toml"
-for tool in zellij codex; do
-    # Change only this tool's URL so a sibling cannot mask a broken checksum check.
-    sed -i "\|^\[\".local/bin/$tool\"\]|,/^$/s|^url = .*|url = \"https://127.0.0.1:1/$tool.tar.gz\"|" "$external"
-    if "${chezmoi[@]}" apply --exclude scripts > "$temporary/download.log" 2>&1; then
-        echo "A failed $tool download must fail apply." >&2
+printf '#!/bin/sh\necho untrusted\n' > "$temporary/zellij"
+tar -czf "$temporary/zellij.tar.gz" -C "$temporary" zellij
+for url in https://127.0.0.1:1/zellij.tar.gz "file://$temporary/zellij.tar.gz"; do
+    sed -i "s|^url = .*|url = \"$url\"|" "$external"
+    if "${chezmoi[@]}" --destination "$failed_destination" apply --exclude scripts > "$temporary/external.log" 2>&1; then
+        echo "A failed or mismatched download must fail apply: $url" >&2
         exit 1
     fi
-    grep -Fq "127.0.0.1:1/$tool.tar.gz" "$temporary/download.log"
-    for binary in "${binaries[@]}"; do
-        test ! -e "$binary"
-    done
-
-    cp "$temporary/external.toml" "$external"
-    printf '#!/bin/sh\necho untrusted\n' > "$temporary/$tool"
-    tar -czf "$temporary/$tool.tar.gz" -C "$temporary" "$tool"
-    sed -i "\|^\[\".local/bin/$tool\"\]|,/^$/s|^url = .*|url = \"file://$temporary/$tool.tar.gz\"|" "$external"
-    if "${chezmoi[@]}" apply --exclude scripts > "$temporary/checksum.log" 2>&1; then
-        echo "A mismatched $tool checksum must fail apply." >&2
-        exit 1
-    fi
-    grep -q 'SHA256 mismatch' "$temporary/checksum.log" || {
-        cat "$temporary/checksum.log" >&2
+    grep -Eq '127\.0\.0\.1:1|SHA256 mismatch' "$temporary/external.log" || {
+        cat "$temporary/external.log" >&2
         exit 1
     }
-    for binary in "${binaries[@]}"; do
-        test ! -e "$binary"
-    done
-    cp "$temporary/external.toml" "$external"
+    test ! -e "$failed_destination/.local/bin/zellij"
+    rm -rf "$failed_destination"
 done
+cp "$temporary/external.toml" "$external"
 
 # Mock only the disposable host hook; no real sudo or Docker socket enters this container.
 export DOTFILES_HOST_STATE="$temporary/host"
 mkdir -p "$DOTFILES_HOST_STATE/etc" "$DOTFILES_HOST_STATE/run"
-printf 'ID=ubuntu\nVERSION_ID=26.04\n' > "$DOTFILES_HOST_STATE/etc/os-release"
+printf 'ID=ubuntu\nVERSION_ID=26.04\nVERSION_CODENAME=resolute\n' > "$DOTFILES_HOST_STATE/etc/os-release"
 cp "$repository/tests/fixtures/ubuntu-host.sh" "$DOTFILES_HOST_STATE/mock.sh"
 shellcheck --shell=bash --exclude=SC2329 "$DOTFILES_HOST_STATE/mock.sh"
 
@@ -96,9 +86,11 @@ printf 'docker-ce\ndocker-ce-cli\ncontainerd.io\ndocker-compose-plugin\ndocker-b
 printf 'docker.service\nssh.socket\nnvidia-cdi-refresh.path\n' > "$DOTFILES_HOST_STATE/active"
 touch "$DOTFILES_HOST_STATE/group"
 
-# Tailscale exists but must never be invoked; configuration-only apply may download externals.
-printf '#!/bin/sh\nexit 1\n' > "$temporary/bin/tailscale"
-chmod +x "$temporary/bin/tailscale"
+# Installed tools answer only version checks; configuration-only apply must not run them.
+for command in tailscale claude codex opencode; do
+    printf '#!/bin/sh\ntest "$*" = --version\necho %s >> "%s"\n' "$command" "$temporary/tool-calls" > "$temporary/bin/$command"
+    chmod +x "$temporary/bin/$command"
+done
 export PATH="$temporary/bin:$PATH"
 
 "${chezmoi[@]}" diff "${config_only[@]}" > /dev/null
@@ -106,6 +98,7 @@ export PATH="$temporary/bin:$PATH"
 test ! -e "$destination/.gitconfig"
 "${chezmoi[@]}" apply "${config_only[@]}"
 test ! -e "$DOTFILES_HOST_STATE/calls"
+test ! -e "$temporary/tool-calls"
 
 for directory in ubuntu windows ubuntu-host .chezmoiscripts .chezmoitemplates; do
     test ! -e "$destination/$directory"
@@ -152,9 +145,7 @@ for edit in '/^# >>> dotfiles: zoxide >>>$/d' '/^# <<< dotfiles: zoxide <<<$/d' 
     cmp "$temporary/damaged-bashrc" "$destination/.bashrc"
 done
 cp "$temporary/expected-bashrc" "$destination/.bashrc"
-for binary in "${binaries[@]}"; do
-    test ! -e "$binary"
-done
+test ! -e "$zellij"
 test ! -e "$destination/Documents"
 
 git_config=(git config --file "$destination/.gitconfig" --includes)
@@ -169,15 +160,19 @@ cp "$destination/.gitconfig.local" "$temporary/expected-local"
 
 mkdir -p "$destination/Documents/PowerShell"
 printf '# Unmanaged profile\n' > "$destination/Documents/PowerShell/profile.ps1"
-mkdir -p "$destination/.codex" "$destination/.agents/skills/personal"
+mkdir -p "$destination/.codex" "$destination/.agents/skills/personal" "$destination/.claude" "$destination/.config/opencode"
 printf '# Unmanaged Codex settings\n' > "$destination/.codex/config.toml"
 printf '{"test":"unmanaged credential fixture"}\n' > "$destination/.codex/auth.json"
 printf '# Unmanaged skill\n' > "$destination/.agents/skills/personal/SKILL.md"
+printf '# Unmanaged Claude settings\n' > "$destination/.claude/settings.json"
+printf '{"test":"unmanaged OpenCode settings"}\n' > "$destination/.config/opencode/opencode.json"
 cp -R "$destination/.codex" "$temporary/expected-codex"
+cp -R "$destination/.claude" "$temporary/expected-claude"
+cp -R "$destination/.config/opencode" "$temporary/expected-opencode"
 
 # Reject every managed file and ancestor collision before writing any configuration.
 mkdir "$temporary/link-target"
-for relative in .bash_aliases .bashrc .gitconfig .local .local/bin .local/bin/zellij .local/bin/codex; do
+for relative in .bash_aliases .bashrc .gitconfig .local .local/bin .local/bin/zellij; do
     conflict="$temporary/conflict-home/$relative"
     mkdir -p "$(dirname "$conflict")"
     for kind in link collision; do
@@ -217,79 +212,95 @@ done
 "${chezmoi[@]}" diff > /dev/null
 "${chezmoi[@]}" apply --dry-run > /dev/null
 test ! -e "$DOTFILES_HOST_STATE/calls"
-for binary in "${binaries[@]}"; do
-    test ! -e "$binary"
-done
+test ! -e "$zellij"
 
 "${chezmoi[@]}" apply
-for path in "$destination/.local/bin" "${binaries[@]}"; do
+printf 'tailscale\nclaude\ncodex\nopencode\n' | cmp - "$temporary/tool-calls"
+for path in "$destination/.local/bin" "$zellij"; do
     test "$(stat -c %a "$path")" = 755
 done
-sha256sum "${binaries[@]}" > "$temporary/expected-binaries"
-zellij_version=$("${binaries[0]}" --version)
+sha256sum "$zellij" > "$temporary/expected-binaries"
+zellij_version=$("$zellij" --version)
 [[ $zellij_version == zellij\ * ]]
 test "$(HOME="$destination" PATH="$destination/.local/bin:$PATH" bash --noprofile --rcfile "$destination/.bashrc" \
     -ic 'zj --version' 2>"$temporary/bash.log")" = "$zellij_version"
-HOME="$destination" CODEX_HOME="$destination/.codex" "${binaries[1]}" --version | grep -E '^codex-cli [0-9]'
 HTTPS_PROXY=http://127.0.0.1:1 "${chezmoi[@]}" apply
 
 printf '#!/bin/sh\necho modified\n' > "$temporary/modified-binary"
-for binary in "${binaries[@]}"; do
-    cp "$temporary/modified-binary" "$binary"
-done
-
+cp "$temporary/modified-binary" "$zellij"
 HTTPS_PROXY=http://127.0.0.1:1 "${chezmoi[@]}" apply "${config_only[@]}"
-for binary in "${binaries[@]}"; do
-    cmp "$temporary/modified-binary" "$binary"
-done
+cmp "$temporary/modified-binary" "$zellij"
 
 HTTPS_PROXY=http://127.0.0.1:1 "${chezmoi[@]}" apply --exclude scripts --force
 sha256sum --check --status "$temporary/expected-binaries"
 
-# Isolate PATH for the missing-Tailscale case, including hosts that already have it.
-export DOTFILES_TAILSCALE_BIN="$temporary/tailscale-bin"
-export DOTFILES_TAILSCALE_LOG="$temporary/tailscale-runs"
-mkdir "$DOTFILES_TAILSCALE_BIN"
-for command in bash sh cat chmod; do
-    ln -s "$(command -v "$command")" "$DOTFILES_TAILSCALE_BIN/$command"
+# Isolate PATH so every tool is missing, including on hosts that already have them.
+export DOTFILES_TOOLS_BIN="$temporary/tools-bin" DOTFILES_TOOLS_LOG="$temporary/tools-runs"
+mkdir "$DOTFILES_TOOLS_BIN"
+for command in bash sh cat chmod env ln mkdir sed; do
+    ln -s "$(command -v "$command")" "$DOTFILES_TOOLS_BIN/$command"
 done
-cat > "$DOTFILES_TAILSCALE_BIN/curl" <<'EOF'
+cat > "$DOTFILES_TOOLS_BIN/curl" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
-[[ $* == '--fail --location --silent --show-error https://tailscale.com/install.sh' ]]
-echo download >> "$DOTFILES_TAILSCALE_LOG"
-cat "$DOTFILES_TAILSCALE_BIN/installer.sh"
-[[ ${DOTFILES_TAILSCALE_FAILURE-} != download ]]
+[[ $# == 5 && "$1 $2 $3 $4" == '--fail --location --silent --show-error' ]]
+case "$5" in
+    https://tailscale.com/install.sh) tool=tailscale ;;
+    https://claude.ai/install.sh) tool=claude ;;
+    https://chatgpt.com/codex/install.sh) tool=codex ;;
+    https://opencode.ai/install) tool=opencode ;;
+    *) exit 99 ;;
+esac
+echo "download $tool" >> "$DOTFILES_TOOLS_LOG"
+[[ ${DOTFILES_TOOLS_FAILURE-} != "download $tool" ]]
+sed "s/@TOOL@/$tool/g" "$DOTFILES_TOOLS_BIN/installer.sh"
 EOF
-chmod +x "$DOTFILES_TAILSCALE_BIN/curl"
-cat > "$DOTFILES_TAILSCALE_BIN/installer.sh" <<'EOF'
-#!/bin/sh
+cat > "$DOTFILES_TOOLS_BIN/installer.sh" <<'EOF'
 set -eu
-echo install >> "$DOTFILES_TAILSCALE_LOG"
-test "$TRACK" = stable
+echo "install @TOOL@${*:+ $*}" >> "$DOTFILES_TOOLS_LOG"
 test -f "$CHEZMOI_DEST_DIR/.gitconfig"
-test "${DOTFILES_TAILSCALE_FAILURE-}" != install
-printf '#!/bin/sh\ntest "$*" = version\n' > "$DOTFILES_TAILSCALE_BIN/tailscale"
-chmod +x "$DOTFILES_TAILSCALE_BIN/tailscale"
+test "${DOTFILES_TOOLS_FAILURE-}" != 'install @TOOL@'
+case @TOOL@ in
+    tailscale) test "$TRACK" = stable; directory=$DOTFILES_TOOLS_BIN ;;
+    codex) test "$CODEX_NON_INTERACTIVE" = 1; directory=$HOME/.local/bin ;;
+    opencode) directory=$HOME/.opencode/bin ;;
+    *) directory=$HOME/.local/bin ;;
+esac
+mkdir -p "$directory"
+printf '#!/bin/sh\ntest "$*" = --version\n' > "$directory/@TOOL@"
+chmod +x "$directory/@TOOL@"
 EOF
+chmod +x "$DOTFILES_TOOLS_BIN/curl"
 export TRACK=unstable
-printf '\n# Exercise a changed hook.\n' >> "$tailscale_hook"
-PATH="$DOTFILES_TAILSCALE_BIN" "${chezmoi[@]}" apply "${config_only[@]}"
-test ! -e "$DOTFILES_TAILSCALE_LOG"
-for failure in download install; do
-    if PATH="$DOTFILES_TAILSCALE_BIN" DOTFILES_TAILSCALE_FAILURE="$failure" \
-        "${chezmoi[@]}" apply --source-path "$tailscale_hook" --force > "$temporary/tailscale.log" 2>&1; then
-        echo 'A failed Tailscale installation must fail apply.' >&2
+tools=("${chezmoi[@]}" apply --source-path "$tools_hook")
+PATH="$DOTFILES_TOOLS_BIN" "${chezmoi[@]}" apply "${config_only[@]}"
+test ! -e "$DOTFILES_TOOLS_LOG"
+for failure in 'download tailscale' 'install tailscale' 'install opencode'; do
+    if PATH="$DOTFILES_TOOLS_BIN" DOTFILES_TOOLS_FAILURE="$failure" "${tools[@]}" > "$temporary/tools.log" 2>&1; then
+        echo "A failed $failure must fail apply." >&2
         exit 1
     fi
-    test ! -e "$DOTFILES_TAILSCALE_BIN/tailscale"
 done
-PATH="$DOTFILES_TAILSCALE_BIN" "${chezmoi[@]}" apply --source-path "$tailscale_hook" --force
-PATH="$DOTFILES_TAILSCALE_BIN" "${chezmoi[@]}" apply --source-path "$tailscale_hook"
-printf '\n# Exercise an already installed Tailscale.\n' >> "$tailscale_hook"
-PATH="$DOTFILES_TAILSCALE_BIN" "${chezmoi[@]}" apply --source-path "$tailscale_hook" --force
-printf 'download\ndownload\ninstall\ndownload\ninstall\n' > "$temporary/expected-runs"
-cmp "$temporary/expected-runs" "$DOTFILES_TAILSCALE_LOG"
+test ! -e "$destination/.local/bin/opencode"
+PATH="$DOTFILES_TOOLS_BIN" "${tools[@]}"
+PATH="$DOTFILES_TOOLS_BIN" "${tools[@]}"
+test "$(readlink "$destination/.local/bin/opencode")" = "$destination/.opencode/bin/opencode"
+cat > "$temporary/expected-runs" <<'EOF'
+download tailscale
+download tailscale
+install tailscale
+download tailscale
+install tailscale
+download claude
+install claude stable
+download codex
+install codex
+download opencode
+install opencode --no-modify-path
+download opencode
+install opencode --no-modify-path
+EOF
+cmp "$temporary/expected-runs" "$DOTFILES_TOOLS_LOG"
 "${chezmoi[@]}" verify --exclude scripts
 test "$("${git_config[@]}" --get user.name)" = 'Local User'
 cmp "$temporary/expected-git" "$destination/.gitconfig"
@@ -300,6 +311,8 @@ grep -qx '# Personal shell settings' "$destination/.bashrc"
 grep -qx 'PROMPT_COMMAND=custom' "$destination/.bashrc"
 cmp "$temporary/expected-codex/config.toml" "$destination/.codex/config.toml"
 cmp "$temporary/expected-codex/auth.json" "$destination/.codex/auth.json"
+cmp "$temporary/expected-claude/settings.json" "$destination/.claude/settings.json"
+cmp "$temporary/expected-opencode/opencode.json" "$destination/.config/opencode/opencode.json"
 grep -qx '# Unmanaged skill' "$destination/.agents/skills/personal/SKILL.md"
 echo 'Ubuntu: identity, configuration, externals, retries, conflicts and preservation passed.'
 
