@@ -1,6 +1,6 @@
 # dotfiles
 
-Windows 11 x64 / Ubuntu Server 26.04 LTS amd64 or arm64, chezmoi 2.72.1+, applied to freshly installed machines.
+Windows 11 x64 / Ubuntu Server 26.04 LTS amd64 or arm64, applied to freshly installed machines.
 Fork, edit [winget.json](winget.json) and use your fork URL below.
 
 ## Setup policy
@@ -27,7 +27,7 @@ Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 chezmoi init --apply https://github.com/seiya8bit/dotfiles
 ```
 
-Then: select `JetBrainsMono Nerd Font Mono` in Windows Terminal, enable Docker Desktop's WSL 2 engine, run `docker run --rm hello-world`, check that `winget pin list` shows CLIP STUDIO PAINT at 5.0.4, and sign in to apps.
+Then: select `JetBrainsMono Nerd Font Mono` in Windows Terminal, enable Docker Desktop's WSL 2 engine, run `docker run --rm hello-world`, check that `winget pin list` matches the `Version`s in `winget.json`, and sign in to apps.
 
 ## Ubuntu Server
 
@@ -60,9 +60,15 @@ Edit sources via `chezmoi cd`. Add packages to `winget.json`, the [Ubuntu packag
 
 Personal overrides stay unmanaged and are never created by automation: `~/.gitconfig.local`, host-specific Windows `$PROFILE`, and `~/.bashrc`. Change Git identity with `chezmoi init --prompt`.
 
+For a new Ubuntu LTS, change `FROM` in [tests/Dockerfile](tests/Dockerfile), the CI runners and the versions in this README in one PR.
+
 ## Verification
 
 For behavior changes, run the affected platform: `./tests/verify-windows.ps1` on Windows (WinGet mocked), and `bash tests/verify-ubuntu.sh` with Docker for Ubuntu (real packages in the same container as CI).
 
-CI also runs weekly to catch upstream package, repository and key changes. Documentation-only edits need reference checks and `git diff --check`.
-**Services, SSH, Secure Boot, the NVIDIA branch and real WinGet installs remain unverified.** Record hardware acceptance here with OS/architecture/GPU/kernel/driver/Toolkit versions.
+CI also runs weekly to catch upstream package, repository and key changes; GitHub disables that schedule after 60 days without commits, so re-enable it under Actions. Renovate updates the workflow's actions. Documentation-only edits need reference checks and `git diff --check`.
+
+**Services, SSH, Secure Boot, the NVIDIA branch and real WinGet installs remain unverified.** Record hardware acceptance below:
+
+| Date | OS / architecture | GPU / kernel / driver / Toolkit | Result |
+|---|---|---|---|
