@@ -3,10 +3,19 @@
 $ErrorActionPreference = 'Stop'
 
 # winget.json: {{ include "../winget.json" | sha256sum }}
-winget.exe import --import-file (Join-Path $env:CHEZMOI_WORKING_TREE 'winget.json') --no-upgrade `
+$file = Join-Path $env:CHEZMOI_WORKING_TREE 'winget.json'
+winget.exe import --import-file $file --no-upgrade `
     --accept-package-agreements --accept-source-agreements --disable-interactivity
-
 if ($LASTEXITCODE -ne 0) {
     throw "WinGet import failed (exit $LASTEXITCODE)."
+}
+
+# Import installs a listed Version; the pin keeps `winget upgrade --all` from moving it.
+foreach ($package in (Get-Content -LiteralPath $file -Raw | ConvertFrom-Json).Sources.Packages | Where-Object Version) {
+    winget.exe pin add --id $package.PackageIdentifier --exact --version $package.Version --force `
+        --accept-source-agreements --disable-interactivity
+    if ($LASTEXITCODE -ne 0) {
+        throw "WinGet pin failed for $($package.PackageIdentifier) (exit $LASTEXITCODE)."
+    }
 }
 {{ end -}}

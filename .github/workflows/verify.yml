@@ -2,6 +2,9 @@ name: Verify
 
 on:
   pull_request:
+  schedule:
+    # Catch upstream package, repository and key changes before the next setup needs them.
+    - cron: '0 3 * * 1'
   workflow_dispatch:
 
 permissions:
@@ -16,17 +19,20 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
-      - name: Install verification tool
+      - uses: actions/checkout@v6
+      - name: Install chezmoi
         shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          $directory = Join-Path $env:RUNNER_TEMP 'dotfiles-tools'
-          New-Item -ItemType Directory -Path $directory -Force | Out-Null
-          $binary = Join-Path $directory 'chezmoi.exe'
-          Invoke-WebRequest 'https://github.com/twpayne/chezmoi/releases/download/v2.72.1/chezmoi-windows-amd64.exe' -OutFile $binary
-          if ((Get-FileHash $binary -Algorithm SHA256).Hash -ne '82ba47ad6212322067b0dcac0b1e390861a87e5bda7d5a8819724be5ff1960e7') {
+          $directory = Join-Path $env:RUNNER_TEMP 'chezmoi'
+          gh release download --repo twpayne/chezmoi --dir $directory `
+            --pattern 'chezmoi-windows-amd64.exe' --pattern 'chezmoi_*_checksums.txt'
+          $hash = (Get-FileHash (Join-Path $directory 'chezmoi-windows-amd64.exe')).Hash
+          if (!((Get-Content (Get-Item "$directory/chezmoi_*_checksums.txt")) -match "^$hash  chezmoi-windows-amd64\.exe$")) {
             throw 'chezmoi checksum mismatch.'
           }
+          Rename-Item (Join-Path $directory 'chezmoi-windows-amd64.exe') 'chezmoi.exe'
           $directory | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
       - name: Verify Windows
         shell: pwsh
@@ -37,13 +43,16 @@ jobs:
       matrix:
         runner: [ubuntu-26.04, ubuntu-26.04-arm]
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+      - uses: actions/checkout@v6
       - name: Build verification container
         run: docker build --tag dotfiles-verify .devcontainer
       - name: Verify Ubuntu
+        env:
+          # mise resolves latest releases through the GitHub API; avoid anonymous rate limits.
+          GITHUB_TOKEN: ${{ github.token }}
         run: >-
-          docker run --rm
+          docker run --rm --env GITHUB_TOKEN
           --mount "type=bind,source=$PWD,target=/workspaces/dotfiles,readonly"
           dotfiles-verify bash tests/verify-ubuntu.sh

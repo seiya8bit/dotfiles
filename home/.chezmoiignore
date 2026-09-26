@@ -1,24 +1,7 @@
-{{ $paths := dict ".gitconfig" "file" -}}
-{{ if and (eq .chezmoi.os "linux") (eq .chezmoi.osRelease.id "ubuntu") -}}
-{{ $paths = merge $paths (dict
-    ".bash_aliases" "file" ".bashrc" "file"
-    ".local" "dir" ".local/bin" "dir" ".local/bin/zellij" "file") -}}
-{{ else -}}
-.bash_aliases
-.bashrc
-{{ end -}}
-{{ if eq .chezmoi.os "windows" -}}
-{{ $paths = merge $paths (dict
-    "Documents" "dir"
-    "Documents/PowerShell" "dir"
-    "Documents/PowerShell/profile.ps1" "file") -}}
-{{ else -}}
+{{ if ne .chezmoi.os "windows" -}}
 Documents
 {{ end -}}
-{{ range $path, $expected := $paths -}}
-{{ with lstat (joinPath $.chezmoi.destDir $path) -}}
-{{ if ne .type $expected -}}
-{{ fail (printf "%s must be a regular %s; move the conflicting file, directory or link before applying" $path $expected) -}}
-{{ end -}}
-{{ end -}}
+{{ if not (and (eq .chezmoi.os "linux") (eq .chezmoi.osRelease.id "ubuntu")) -}}
+.bash_aliases
+.config/mise
 {{ end -}}

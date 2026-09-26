@@ -1,1 +1,10 @@
-alias zj='zellij'
+eval "$(mise activate bash)"
+eval "$(zoxide init bash)"
+
+# Upgrade dotfiles, mise tools and APT packages.
+update() {
+    chezmoi update && mise upgrade && sudo apt update && sudo apt upgrade || return
+    if [[ -e /run/reboot-required ]]; then
+        echo 'Reboot required.'
+    fi
+}
