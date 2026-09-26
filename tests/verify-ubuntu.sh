@@ -7,8 +7,11 @@ repository=$(cd "$(dirname "$0")/.." && pwd)
 # This installs real packages, so it reruns itself in a disposable container.
 if [[ ! -e /.dockerenv ]]; then
     docker build --tag dotfiles-verify "$repository/tests"
-    exec docker run --rm --env GITHUB_TOKEN         --mount "type=bind,source=$repository,target=/workspaces/dotfiles,readonly"         dotfiles-verify bash tests/verify-ubuntu.sh
+    exec docker run --rm --env GITHUB_TOKEN \
+        --mount "type=bind,source=$repository,target=/workspaces/dotfiles,readonly" \
+        dotfiles-verify bash tests/verify-ubuntu.sh
 fi
+
 script="$repository/home/.chezmoiscripts/ubuntu/run_onchange_after_install-packages.sh.tmpl"
 shellcheck "$0"
 
