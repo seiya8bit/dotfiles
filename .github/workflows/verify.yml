@@ -39,9 +39,13 @@ jobs:
         run: ./tests/verify-windows.ps1
 
   ubuntu:
+    # Required status checks match this name, so it must not change with the Ubuntu release.
+    name: ubuntu (${{ matrix.arch }})
     strategy:
       matrix:
-        runner: [ubuntu-26.04, ubuntu-26.04-arm]
+        include:
+          - { arch: amd64, runner: ubuntu-26.04 }
+          - { arch: arm64, runner: ubuntu-26.04-arm }
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 20
     steps:
