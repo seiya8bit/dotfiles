@@ -72,7 +72,7 @@ function winget.exe {
     & $chezmoi @options apply
     Assert ($LASTEXITCODE -eq 0 -and [IO.File]::ReadAllLines($log).Count -eq 2) 'Unchanged winget.json ran WinGet again.'
     [IO.File]::AppendAllText($winget, "`n")
-    & $chezmoi @options apply --force
+    & $chezmoi @options apply
     Assert ($LASTEXITCODE -eq 0 -and [IO.File]::ReadAllLines($log).Count -eq 4) 'Changed winget.json did not rerun WinGet.'
 
     foreach ($relative in '.bash_aliases', '.config/mise') {

@@ -4,8 +4,6 @@
 {{- fail "Git name and email must not be empty" -}}
 {{- end -}}
 sourceDir = {{ .chezmoi.workingTree | quote }}
-lessInteractive = {{ not (and (eq .chezmoi.os "linux") (eq .chezmoi.osRelease.id "ubuntu")) }}
-umask = 0o022
 
 [data]
 gitName = {{ $gitName | quote }}

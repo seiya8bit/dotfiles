@@ -30,7 +30,12 @@ repository() {
 }
 
 sudo apt-get update
-apt_install ca-certificates curl gnupg openssh-server pciutils tmux zoxide
+apt_install ca-certificates curl gnupg openssh-server pciutils tmux unattended-upgrades zoxide
+
+# Security updates also cover vendor packages that do not restart containers.
+printf '%s\n' 'Unattended-Upgrade::Origins-Pattern {' '    "site=pkgs.tailscale.com";' \
+    '    "site=downloads.claude.ai";' '    "site=mise.jdx.dev";' '};' |
+    sudo tee /etc/apt/apt.conf.d/52dotfiles-unattended-upgrades > /dev/null
 
 # README's bootstrap adds the same mise files; this keeps its key verified.
 repository mise https://mise.jdx.dev/gpg-key.pub 24853EC9F655CE80B48E6C3A8B81C9D17413A06D \
@@ -56,8 +61,8 @@ sudo usermod -aG docker "$(id -un)"
 
 if [[ -n $gpu ]]; then
     sudo ubuntu-drivers install --gpgpu
-    # The GPGPU driver omits nvidia-smi; add the utilities for the installed branch.
-    branch=$(dpkg-query -W -f='${Package}\n' 'nvidia-headless-no-dkms-*' | sed 's/^nvidia-headless-no-dkms-//')
+    # The GPGPU driver omits nvidia-smi; utilities exist per branch, without -open variants.
+    branch=$(dpkg-query -W -f='${Package}\n' 'nvidia-headless-no-dkms-*' | sed 's/^nvidia-headless-no-dkms-//; s/-open$//')
     apt_install "nvidia-utils-$branch"
 fi
 
