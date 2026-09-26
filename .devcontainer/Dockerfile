@@ -3,7 +3,7 @@ FROM ubuntu:26.04
 # A normal user with sudo, like a fresh Ubuntu Server; containers have no init, so package scripts must not start services.
 RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-        ca-certificates git shellcheck software-properties-common sudo \
+        ca-certificates curl git gnupg shellcheck sudo \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --create-home --shell /bin/bash vscode \
     && echo 'vscode ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/vscode \

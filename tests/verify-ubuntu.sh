@@ -13,8 +13,10 @@ script="$repository/home/.chezmoiscripts/ubuntu/run_onchange_after_install-packa
 shellcheck "$0"
 
 # Bootstrap as in README, from this checkout instead of GitHub.
-sudo add-apt-repository -y ppa:jdxcode/mise
-sudo apt-get install -y mise
+curl -fsSL https://mise.jdx.dev/gpg-key.pub | sudo gpg --dearmor -o /etc/apt/keyrings/mise.gpg
+printf '%s\n' 'Types: deb' 'URIs: https://mise.jdx.dev/deb' 'Suites: stable' 'Components: main' \
+    'Signed-By: /etc/apt/keyrings/mise.gpg' | sudo tee /etc/apt/sources.list.d/mise.sources
+sudo apt-get update && sudo apt-get install -y mise
 mise exec chezmoi@latest -- chezmoi init --apply --no-tty --source "$repository" \
     --promptString 'Git name=Test User,Git email=test@example.invalid'
 

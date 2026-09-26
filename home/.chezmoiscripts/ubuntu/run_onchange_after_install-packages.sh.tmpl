@@ -32,13 +32,16 @@ repository() {
 sudo apt-get update
 apt_install ca-certificates curl gnupg openssh-server pciutils tmux zoxide
 
+# README's bootstrap adds the same mise files; this keeps its key verified.
+repository mise https://mise.jdx.dev/gpg-key.pub 24853EC9F655CE80B48E6C3A8B81C9D17413A06D \
+    'URIs: https://mise.jdx.dev/deb' 'Suites: stable' 'Components: main'
 repository docker https://download.docker.com/linux/ubuntu/gpg 9DC858229FC7DD38854AE2D88D81803C0EBFCD88 \
     'URIs: https://download.docker.com/linux/ubuntu' "Suites: $VERSION_CODENAME" 'Components: stable'
 repository tailscale "https://pkgs.tailscale.com/stable/ubuntu/$VERSION_CODENAME.noarmor.gpg" 2596A99EAAB33821893C0A79458CA832957F5868 \
     'URIs: https://pkgs.tailscale.com/stable/ubuntu' "Suites: $VERSION_CODENAME" 'Components: main'
 repository claude-code https://downloads.claude.ai/keys/claude-code.asc 31DDDE24DDFAB679F42D7BD2BAA929FF1A7ECACE \
     'URIs: https://downloads.claude.ai/claude-code/apt/stable' 'Suites: stable' 'Components: main'
-packages=(docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin tailscale claude-code)
+packages=(docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin tailscale claude-code mise)
 
 gpu=$(lspci -d 10de::03xx)
 if [[ -n $gpu ]]; then

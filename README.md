@@ -31,11 +31,13 @@ Then: select `JetBrainsMono Nerd Font Mono` in Windows Terminal, enable Docker D
 
 ## Ubuntu Server
 
-Installs Docker/Compose/Buildx, SSH, Tailscale, Claude Code, tmux and zoxide with APT, Codex, OpenCode and chezmoi with mise, and NVIDIA drivers/Container Toolkit when an NVIDIA GPU is present. You join the **root-equivalent Docker group**.
+Installs Docker/Compose/Buildx, SSH, Tailscale, Claude Code, mise, tmux and zoxide with APT, Codex, OpenCode and chezmoi with mise, and NVIDIA drivers/Container Toolkit when an NVIDIA GPU is present. You join the **root-equivalent Docker group**.
 
 ```sh
-sudo add-apt-repository -y ppa:jdxcode/mise
-sudo apt-get install -y mise
+curl -fsSL https://mise.jdx.dev/gpg-key.pub | sudo gpg --dearmor -o /etc/apt/keyrings/mise.gpg
+printf '%s\n' 'Types: deb' 'URIs: https://mise.jdx.dev/deb' 'Suites: stable' 'Components: main' \
+    'Signed-By: /etc/apt/keyrings/mise.gpg' | sudo tee /etc/apt/sources.list.d/mise.sources
+sudo apt-get update && sudo apt-get install -y mise
 mise exec chezmoi@latest -- chezmoi init --apply https://github.com/seiya8bit/dotfiles
 ```
 
