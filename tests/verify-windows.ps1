@@ -82,14 +82,21 @@ function winget.exe {
     [IO.File]::WriteAllText((Join-Path $destination '.gitconfig.local'), "[user]`n    name = Local User`n")
     Assert ((& git config --file $gitconfig --includes --get user.name) -ceq 'Local User') 'Local Git settings did not win.'
 
-    # The profile initializes starship and zoxide and defines update.
+    # The profile initializes optional tools only when present and defines update.
     & {
-        $script:ShellInit = [Collections.Generic.List[string]]::new()
-        function starship { '$script:ShellInit.Add("starship")' }
-        function zoxide { '$script:ShellInit.Add("zoxide")' }
-        . $profile
-        Assert (($script:ShellInit -join ',') -ceq 'starship,zoxide') 'Shell initialization failed.'
-        Assert ([bool](Get-Command update -CommandType Function)) 'update is missing.'
+        $previousPath = $env:PATH
+        try {
+            $env:PATH = ''
+            . $profile
+            $script:ShellInit = [Collections.Generic.List[string]]::new()
+            function starship { '$script:ShellInit.Add("starship")' }
+            function zoxide { '$script:ShellInit.Add("zoxide")' }
+            . $profile
+            Assert (($script:ShellInit -join ',') -ceq 'starship,zoxide') 'Shell initialization failed.'
+            Assert ([bool](Get-Command update -CommandType Function)) 'update is missing.'
+        } finally {
+            $env:PATH = $previousPath
+        }
     }
     # The Documents guard runs only when applying to the real home; another home stands in for a redirected Documents.
     $guard = Join-Path $temporary.FullName 'check-documents.ps1'
