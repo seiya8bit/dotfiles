@@ -14,8 +14,10 @@
         { "PackageIdentifier": "Starship.Starship" },
         { "PackageIdentifier": "ajeetdsouza.zoxide" },
 
+        { "PackageIdentifier": "Anthropic.Claude" },
         { "PackageIdentifier": "Anthropic.ClaudeCode" },
         { "PackageIdentifier": "OpenAI.Codex" },
+        { "PackageIdentifier": "SST.OpenCodeDesktop" },
         { "PackageIdentifier": "SST.opencode" },
 
         { "PackageIdentifier": "Google.Chrome" },
