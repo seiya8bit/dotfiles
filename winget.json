@@ -22,8 +22,6 @@
         { "PackageIdentifier": "Discord.Discord" },
         { "PackageIdentifier": "SlackTechnologies.Slack" },
 
-        { "PackageIdentifier": "Notion.Notion" },
-
         { "PackageIdentifier": "Gyan.FFmpeg" },
         { "PackageIdentifier": "BlenderFoundation.Blender" },
         { "PackageIdentifier": "Celsys.ClipStudioPaint", "Version": "5.0.4" },
