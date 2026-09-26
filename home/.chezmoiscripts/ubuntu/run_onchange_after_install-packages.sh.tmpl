@@ -3,6 +3,12 @@
 set -euo pipefail
 # mise tools: {{ include "dot_config/mise/config.toml" | sha256sum }}
 
+# Password login is disabled below, so a key must already allow access.
+if [[ ! -s $HOME/.ssh/authorized_keys ]]; then
+    echo "Add your SSH public key to $HOME/.ssh/authorized_keys, then apply again." >&2
+    exit 1
+fi
+
 # shellcheck disable=SC1091
 . /etc/os-release
 GNUPGHOME=$(mktemp -d)
@@ -36,6 +42,13 @@ apt_install ca-certificates curl gnupg openssh-server pciutils tmux unattended-u
 printf '%s\n' 'Unattended-Upgrade::Origins-Pattern {' '    "site=pkgs.tailscale.com";' \
     '    "site=downloads.claude.ai";' '    "site=mise.jdx.dev";' '};' |
     sudo tee /etc/apt/apt.conf.d/52dotfiles-unattended-upgrades > /dev/null
+
+# sshd keeps the first value it reads, so this sorts before the installer's 50-cloud-init.conf.
+printf '%s\n' 'PasswordAuthentication no' 'KbdInteractiveAuthentication no' |
+    sudo tee /etc/ssh/sshd_config.d/10-dotfiles.conf > /dev/null
+if systemctl is-active --quiet ssh; then
+    sudo systemctl reload ssh
+fi
 
 # bootstrap.sh adds the same mise files; this re-verifies the key and carries a new fingerprint to existing machines.
 repository mise https://mise.jdx.dev/gpg-key.pub 24853EC9F655CE80B48E6C3A8B81C9D17413A06D \

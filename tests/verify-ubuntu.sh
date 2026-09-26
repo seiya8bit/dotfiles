@@ -15,7 +15,17 @@ fi
 script="$repository/home/.chezmoiscripts/ubuntu/run_onchange_after_install-packages.sh.tmpl"
 shellcheck "$0" "$repository/bootstrap.sh"
 
-"$repository/bootstrap.sh" --no-tty --promptString 'Git name=Test User,Git email=test@example.invalid'
+# The Ubuntu Server installer writes this when password login is allowed; the dotfiles setting must win.
+sudo mkdir -p /etc/ssh/sshd_config.d
+echo 'PasswordAuthentication yes' | sudo tee /etc/ssh/sshd_config.d/50-cloud-init.conf > /dev/null
+bootstrap=("$repository/bootstrap.sh" --no-tty --promptString 'Git name=Test User,Git email=test@example.invalid')
+if "${bootstrap[@]}"; then
+    echo 'Apply disabled SSH passwords without an authorized key.' >&2
+    exit 1
+fi
+mkdir -m 700 "$HOME/.ssh"
+echo 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDotfilesVerificationKeyOnly test' > "$HOME/.ssh/authorized_keys"
+"${bootstrap[@]}"
 
 export PATH="$HOME/.local/share/mise/shims:$PATH"
 chezmoi execute-template --file "$script" | shellcheck -
@@ -27,6 +37,10 @@ for command in chezmoi codex opencode claude tailscale docker zoxide; do
 done
 tmux -V
 id -nG "$(id -un)" | grep -qw docker
+sudo mkdir -p /run/sshd
+sshd=$(sudo sshd -T)
+grep -qx 'passwordauthentication no' <<< "$sshd"
+grep -qx 'kbdinteractiveauthentication no' <<< "$sshd"
 sudo unattended-upgrade --dry-run --debug 2>&1 | grep 'Allowed origins' | grep -q 'site=mise.jdx.dev'
 test ! -e "$HOME/Documents"
 test -z "$(WSL_DISTRO_NAME=Ubuntu chezmoi execute-template --file "$script")"
@@ -39,4 +53,4 @@ test "$(git config --global --includes user.name)" = 'Local User'
 chezmoi apply --no-tty
 test "$(git config --global --includes user.name)" = 'Local User'
 
-echo 'Ubuntu: bootstrap, packages, mise tools, shell and Git configuration passed.'
+echo 'Ubuntu: bootstrap, packages, mise tools, SSH, shell and Git configuration passed.'
