@@ -51,7 +51,7 @@ New Ubuntu LTS: change `FROM` in [tests/Dockerfile](tests/Dockerfile), the CI ru
 
 ## Verification
 
-Behavior changes: `./tests/verify-windows.ps1` (WinGet mocked) and `bash tests/verify-ubuntu.sh` (Docker, real packages). Docs only: check references and `git diff --check`.
+Always run `git diff --check`. Changes that reach Windows: `./tests/verify-windows.ps1` (WinGet mocked); changes that reach Ubuntu: `bash tests/verify-ubuntu.sh` (Docker, real packages); docs: check that every link, path and command they mention exists.
 
 CI also runs weekly for upstream package and key changes. GitHub stops that schedule after 60 idle days: re-enable it, and run it manually before any setup.
 
