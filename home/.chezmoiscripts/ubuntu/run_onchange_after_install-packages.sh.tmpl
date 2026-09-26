@@ -37,7 +37,7 @@ printf '%s\n' 'Unattended-Upgrade::Origins-Pattern {' '    "site=pkgs.tailscale.
     '    "site=downloads.claude.ai";' '    "site=mise.jdx.dev";' '};' |
     sudo tee /etc/apt/apt.conf.d/52dotfiles-unattended-upgrades > /dev/null
 
-# README's bootstrap adds the same mise files; this keeps its key verified.
+# bootstrap.sh adds the same mise files; this re-verifies the key and carries a new fingerprint to existing machines.
 repository mise https://mise.jdx.dev/gpg-key.pub 24853EC9F655CE80B48E6C3A8B81C9D17413A06D \
     'URIs: https://mise.jdx.dev/deb' 'Suites: stable' 'Components: main'
 repository docker https://download.docker.com/linux/ubuntu/gpg 9DC858229FC7DD38854AE2D88D81803C0EBFCD88 \
