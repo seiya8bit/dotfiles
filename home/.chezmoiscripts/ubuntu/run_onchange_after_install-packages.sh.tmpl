@@ -1,4 +1,4 @@
-{{ if and (eq .chezmoi.os "linux") (eq .chezmoi.osRelease.id "ubuntu") -}}
+{{ if and (eq .chezmoi.os "linux") (eq .chezmoi.osRelease.id "ubuntu") (not (env "WSL_DISTRO_NAME")) -}}
 #!/usr/bin/env bash
 set -euo pipefail
 # mise tools: {{ include "dot_config/mise/config.toml" | sha256sum }}

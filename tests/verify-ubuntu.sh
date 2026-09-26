@@ -29,6 +29,8 @@ tmux -V
 id -nG "$(id -un)" | grep -qw docker
 sudo unattended-upgrade --dry-run --debug 2>&1 | grep 'Allowed origins' | grep -q 'site=mise.jdx.dev'
 test ! -e "$HOME/Documents"
+test -z "$(WSL_DISTRO_NAME=Ubuntu chezmoi execute-template --file "$script")"
+WSL_DISTRO_NAME=Ubuntu chezmoi ignored | grep -qx .bash_aliases
 bash -ic 'type update z' > /dev/null 2>&1
 
 test "$(git config --global --includes user.name)" = 'Test User'

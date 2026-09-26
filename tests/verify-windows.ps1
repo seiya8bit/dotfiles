@@ -98,9 +98,24 @@ function winget.exe {
             $env:PATH = $previousPath
         }
     }
+    # The Documents guard runs only when applying to the real home; a moved home stands in for a redirected Documents.
+    $guard = Join-Path $temporary.FullName 'check-documents.ps1'
+    & $chezmoi @options execute-template --override-data '{"chezmoi":{"destDir":"/","homeDir":"/"}}' `
+        --file (Join-Path $checkout 'home/.chezmoiscripts/windows/run_before_check-documents.ps1.tmpl') > $guard
+    & pwsh -NoProfile -File $guard
+    Assert ($LASTEXITCODE -eq 0) 'Documents guard rejected an unredirected Documents folder.'
+    $previousProfile = $env:USERPROFILE
+    try {
+        $env:USERPROFILE = $destination
+        $null = & pwsh -NoProfile -File $guard 2>&1
+    } finally {
+        $env:USERPROFILE = $previousProfile
+    }
+    Assert ($LASTEXITCODE -ne 0) 'Documents guard accepted a redirected Documents folder.'
+
     & $chezmoi @options verify
     Assert ($LASTEXITCODE -eq 0) 'Target verification failed.'
-    Write-Output 'Windows: identity, WinGet import and pins, reruns, profile and Git configuration passed.'
+    Write-Output 'Windows: identity, WinGet import and pins, reruns, profile, Documents guard and Git configuration passed.'
 } finally {
     $temporary.Delete($true)
 }

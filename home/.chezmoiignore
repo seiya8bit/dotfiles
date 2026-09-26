@@ -1,7 +1,8 @@
 {{ if ne .chezmoi.os "windows" -}}
 Documents
 {{ end -}}
-{{ if not (and (eq .chezmoi.os "linux") (eq .chezmoi.osRelease.id "ubuntu")) -}}
+{{/* WSL reports Ubuntu too, but Docker Desktop owns Docker there. */ -}}
+{{ if not (and (eq .chezmoi.os "linux") (eq .chezmoi.osRelease.id "ubuntu") (not (env "WSL_DISTRO_NAME"))) -}}
 .bash_aliases
 .config/mise
 {{ end -}}
