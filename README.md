@@ -34,14 +34,11 @@ Then: select `JetBrainsMono Nerd Font Mono` in Windows Terminal, enable Docker D
 Installs Docker/Compose/Buildx, SSH, Tailscale, Claude Code, mise, tmux and zoxide with APT, Codex, OpenCode and chezmoi with mise, and NVIDIA drivers/Container Toolkit when an NVIDIA GPU is present. You join the **root-equivalent Docker group**.
 
 ```sh
-curl -fsSL https://mise.jdx.dev/gpg-key.pub -o /tmp/mise.asc
-gpg --show-keys --with-colons /tmp/mise.asc | grep -q '^fpr:::::::::24853EC9F655CE80B48E6C3A8B81C9D17413A06D:' &&
-    sudo gpg --dearmor -o /etc/apt/keyrings/mise.gpg /tmp/mise.asc
-printf '%s\n' 'Types: deb' 'URIs: https://mise.jdx.dev/deb' 'Suites: stable' 'Components: main' \
-    'Signed-By: /etc/apt/keyrings/mise.gpg' | sudo tee /etc/apt/sources.list.d/mise.sources
-sudo apt-get update && sudo apt-get install -y mise
-mise exec chezmoi@latest -- chezmoi init --apply https://github.com/seiya8bit/dotfiles
+git clone https://github.com/seiya8bit/dotfiles ~/.local/share/chezmoi
+~/.local/share/chezmoi/bootstrap.sh
 ```
+
+[bootstrap.sh](bootstrap.sh) installs mise from its fingerprint-verified APT repository, then applies with `mise exec chezmoi@latest`.
 
 Then reboot if apply asks (NVIDIA: enroll Secure Boot at the console if asked); otherwise log out and reconnect. Verify without sudo, and test SSH from another machine:
 
