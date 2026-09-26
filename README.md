@@ -30,7 +30,7 @@ Then: select `JetBrainsMono Nerd Font Mono` in Windows Terminal, enable Docker D
 
 ## Ubuntu Server
 
-Installs Docker/Compose/Buildx, SSH, Tailscale, Claude Code, mise, tmux and zoxide with APT, Codex, OpenCode and chezmoi with mise, and NVIDIA drivers/Container Toolkit when an NVIDIA GPU is present. You join the **root-equivalent Docker group**. Ubuntu on WSL gets only the Git configuration.
+Installs Docker/Compose/Buildx, SSH, Tailscale, Claude Code, mise, tmux and zoxide with APT, Codex, OpenCode and chezmoi with mise, and NVIDIA drivers/Container Toolkit when an NVIDIA GPU is present. SSH accepts keys only, so apply stops until `~/.ssh/authorized_keys` has one (import it in the installer, or `ssh-copy-id` from another machine). You join the **root-equivalent Docker group**. Ubuntu on WSL gets only the Git configuration.
 
 ```sh
 git clone https://github.com/seiya8bit/dotfiles ~/.local/share/chezmoi
