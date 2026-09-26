@@ -65,12 +65,7 @@ Personal overrides stay unmanaged and are never created by automation: `~/.gitco
 
 ## Verification
 
-For behavior changes, run the affected platform: `./tests/verify-windows.ps1` on Windows (WinGet mocked), and for Ubuntu the same container as CI, which installs real packages:
-
-```sh
-docker build --tag dotfiles-verify .devcontainer
-docker run --rm --env GITHUB_TOKEN --mount "type=bind,source=$PWD,target=/workspaces/dotfiles,readonly" dotfiles-verify bash tests/verify-ubuntu.sh
-```
+For behavior changes, run the affected platform: `./tests/verify-windows.ps1` on Windows (WinGet mocked), and `bash tests/verify-ubuntu.sh` with Docker for Ubuntu (real packages in the same container as CI).
 
 CI also runs weekly to catch upstream package, repository and key changes. Documentation-only edits need reference checks and `git diff --check`.
 **Services, SSH, Secure Boot, the NVIDIA branch and real WinGet installs remain unverified.** Record hardware acceptance here with OS/architecture/GPU/kernel/driver/Toolkit versions.

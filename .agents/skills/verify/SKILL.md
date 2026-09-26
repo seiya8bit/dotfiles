@@ -8,7 +8,7 @@ description: Choose and run this dotfiles repository's checks for the current ch
 1. Collect changed paths: `git status --short` and `git diff --name-only main...HEAD`.
 2. Always run `git diff --check`. Pick the rest from [README Verification](../../../README.md#verification):
    - Windows-only paths (`windows`, `Documents/PowerShell`, `winget.json`) → `./tests/verify-windows.ps1`.
-   - Ubuntu-only paths (`ubuntu`, `dot_bash_aliases`, `dot_config/mise`, `.devcontainer/`) → the Ubuntu Docker commands.
+   - Ubuntu-only paths (`ubuntu`, `dot_bash_aliases`, `dot_config/mise`, `tests/Dockerfile`) → `bash tests/verify-ubuntu.sh`.
    - Any other file under `home/`, `tests/` or `.github/`, or `.chezmoiroot`/`.chezmoiversion` → both.
    - Docs and agent files only → reference checks: links and anchors resolve, and every mentioned path, command and version exists in the repository.
 3. A platform you cannot run here (wrong OS, no Docker) is **not run**, never passed; the PR's CI covers it.

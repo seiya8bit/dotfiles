@@ -1,6 +1,0 @@
-{
-  "name": "dotfiles",
-  "build": {
-    "dockerfile": "Dockerfile"
-  }
-}

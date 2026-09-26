@@ -46,13 +46,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
-      - name: Build verification container
-        run: docker build --tag dotfiles-verify .devcontainer
       - name: Verify Ubuntu
         env:
           # mise resolves latest releases through the GitHub API; avoid anonymous rate limits.
           GITHUB_TOKEN: ${{ github.token }}
-        run: >-
-          docker run --rm --env GITHUB_TOKEN
-          --mount "type=bind,source=$PWD,target=/workspaces/dotfiles,readonly"
-          dotfiles-verify bash tests/verify-ubuntu.sh
+        run: bash tests/verify-ubuntu.sh
