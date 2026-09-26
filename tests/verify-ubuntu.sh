@@ -2,13 +2,13 @@
 set -euo pipefail
 trap 'echo "Ubuntu verification failed at line $LINENO" >&2' ERR
 
-# This installs real packages, so it only runs in the disposable verification container.
-if [[ ! -e /.dockerenv ]]; then
-    echo 'Run inside the dotfiles-verify container (see README).' >&2
-    exit 1
-fi
-
 repository=$(cd "$(dirname "$0")/.." && pwd)
+
+# This installs real packages, so it reruns itself in a disposable container.
+if [[ ! -e /.dockerenv ]]; then
+    docker build --tag dotfiles-verify "$repository/tests"
+    exec docker run --rm --env GITHUB_TOKEN         --mount "type=bind,source=$repository,target=/workspaces/dotfiles,readonly"         dotfiles-verify bash tests/verify-ubuntu.sh
+fi
 script="$repository/home/.chezmoiscripts/ubuntu/run_onchange_after_install-packages.sh.tmpl"
 shellcheck "$0"
 
