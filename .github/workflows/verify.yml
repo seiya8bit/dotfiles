@@ -19,7 +19,7 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Install chezmoi
         shell: pwsh
         env:
@@ -45,7 +45,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Verify Ubuntu
         env:
           # mise resolves latest releases through the GitHub API; avoid anonymous rate limits.
