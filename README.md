@@ -1,7 +1,6 @@
 # dotfiles
 
 Windows 11 x64 / Ubuntu Server 26.04 LTS amd64 or arm64, applied to freshly installed machines.
-Fork, edit [winget.json](winget.json) and use your fork URL below.
 
 ## Setup policy
 
@@ -66,9 +65,9 @@ For a new Ubuntu LTS, change `FROM` in [tests/Dockerfile](tests/Dockerfile), the
 
 For behavior changes, run the affected platform: `./tests/verify-windows.ps1` on Windows (WinGet mocked), and `bash tests/verify-ubuntu.sh` with Docker for Ubuntu (real packages in the same container as CI).
 
-CI also runs weekly to catch upstream package, repository and key changes; GitHub disables that schedule after 60 days without commits, so re-enable it under Actions. Renovate updates the workflow's actions. Documentation-only edits need reference checks and `git diff --check`.
+CI also runs weekly to catch upstream package, repository and key changes; GitHub disables that schedule after 60 days without commits, so re-enable it under Actions, and run it there manually before setting up a machine. Renovate updates the workflow's actions. Documentation-only edits need reference checks and `git diff --check`.
 
-**Services, SSH, Secure Boot, the NVIDIA branch and real WinGet installs remain unverified.** Record hardware acceptance below:
+**Services, SSH, Secure Boot, the NVIDIA branch and real WinGet installs remain unverified.** Record hardware acceptance below; if the NVIDIA branch has no row when the next Ubuntu LTS is adopted, delete it.
 
 | Date | OS / architecture | GPU / kernel / driver / Toolkit | Result |
 |---|---|---|---|
