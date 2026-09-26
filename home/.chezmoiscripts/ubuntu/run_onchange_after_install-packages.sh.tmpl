@@ -36,7 +36,7 @@ repository() {
 }
 
 sudo apt-get update
-apt_install ca-certificates curl gnupg openssh-server pciutils tmux unattended-upgrades zoxide
+apt_install ca-certificates curl gnupg openssh-server tmux unattended-upgrades zoxide
 
 # Security updates also cover vendor packages that do not restart containers.
 printf '%s\n' 'Unattended-Upgrade::Origins-Pattern {' '    "site=pkgs.tailscale.com";' \
@@ -59,25 +59,10 @@ repository tailscale "https://pkgs.tailscale.com/stable/ubuntu/$VERSION_CODENAME
     'URIs: https://pkgs.tailscale.com/stable/ubuntu' "Suites: $VERSION_CODENAME" 'Components: main'
 repository claude-code https://downloads.claude.ai/keys/claude-code.asc 31DDDE24DDFAB679F42D7BD2BAA929FF1A7ECACE \
     'URIs: https://downloads.claude.ai/claude-code/apt/stable' 'Suites: stable' 'Components: main'
-packages=(docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin tailscale claude-code mise)
-
-gpu=$(lspci -d 10de::03xx)
-if [[ -n $gpu ]]; then
-    repository nvidia-container-toolkit https://nvidia.github.io/libnvidia-container/gpgkey C95B321B61E88C1809C4F759DDCAE044F796ECB0 \
-        "URIs: https://nvidia.github.io/libnvidia-container/stable/deb/$(dpkg --print-architecture)" 'Suites: /'
-    packages+=(nvidia-container-toolkit ubuntu-drivers-common)
-fi
 
 sudo apt-get update
-apt_install "${packages[@]}"
+apt_install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin tailscale claude-code mise
 sudo usermod -aG docker "$(id -un)"
-
-if [[ -n $gpu ]]; then
-    sudo ubuntu-drivers install --gpgpu
-    # The GPGPU driver omits nvidia-smi; utilities exist per branch, without -open variants.
-    branch=$(dpkg-query -W -f='${Package}\n' 'nvidia-headless-no-dkms-*' | sed 's/^nvidia-headless-no-dkms-//; s/-open$//')
-    apt_install "nvidia-utils-$branch"
-fi
 
 mise install
 
