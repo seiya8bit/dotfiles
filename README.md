@@ -7,7 +7,7 @@ Fork, edit [winget.json](winget.json) and use your fork URL below.
 
 - Priorities: preserve data and settings, limit disruption, then repeatability and low maintenance. Stop on errors instead of repairing.
 - Install only through package managers: WinGet via `winget.json`; APT from the Ubuntu archive, then vendor repositories trusted by key fingerprint; mise only for personal CLIs without an APT repository. No piped install scripts or unmanaged downloads, and no tool from two managers.
-- Everything tracks the latest release, and `update` upgrades it all. Pin only what must stay: a WinGet package with a `Version` in `winget.json` is installed at and pinned to it (CLIP STUDIO PAINT EX 5.0.4: perpetual license).
+- Everything tracks the latest release: `update` upgrades it all, and Ubuntu's unattended-upgrades also applies Tailscale, Claude Code and mise updates daily (Docker and NVIDIA wait for `update`, which may restart containers). Pin only what must stay: a WinGet package with a `Version` in `winget.json` is installed at and pinned to it (CLIP STUDIO PAINT EX 5.0.4: perpetual license).
 - Removing a package from a list does not uninstall it. Never remove packages, change sudoers or reboot automatically; package scripts may start their own services. Firmware and Secure Boot enrollment are manual.
 - Project runtimes, SDKs and databases live in containers, not mise. Credentials and personal agent settings/skills stay outside this repository.
 
@@ -27,14 +27,16 @@ Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 chezmoi init --apply https://github.com/seiya8bit/dotfiles
 ```
 
-Then: select `JetBrainsMono Nerd Font Mono` in Windows Terminal, enable Docker Desktop's WSL 2 engine, run `docker run --rm hello-world`, and sign in to apps.
+Then: select `JetBrainsMono Nerd Font Mono` in Windows Terminal, enable Docker Desktop's WSL 2 engine, run `docker run --rm hello-world`, check that `winget pin list` shows CLIP STUDIO PAINT at 5.0.4, and sign in to apps.
 
 ## Ubuntu Server
 
 Installs Docker/Compose/Buildx, SSH, Tailscale, Claude Code, mise, tmux and zoxide with APT, Codex, OpenCode and chezmoi with mise, and NVIDIA drivers/Container Toolkit when an NVIDIA GPU is present. You join the **root-equivalent Docker group**.
 
 ```sh
-curl -fsSL https://mise.jdx.dev/gpg-key.pub | sudo gpg --dearmor -o /etc/apt/keyrings/mise.gpg
+curl -fsSL https://mise.jdx.dev/gpg-key.pub -o /tmp/mise.asc
+gpg --show-keys --with-colons /tmp/mise.asc | grep -q '^fpr:::::::::24853EC9F655CE80B48E6C3A8B81C9D17413A06D:' &&
+    sudo gpg --dearmor -o /etc/apt/keyrings/mise.gpg /tmp/mise.asc
 printf '%s\n' 'Types: deb' 'URIs: https://mise.jdx.dev/deb' 'Suites: stable' 'Components: main' \
     'Signed-By: /etc/apt/keyrings/mise.gpg' | sudo tee /etc/apt/sources.list.d/mise.sources
 sudo apt-get update && sudo apt-get install -y mise
@@ -55,7 +57,7 @@ Sign in: `sudo tailscale up`; `codex login --device-auth` (enable device code lo
 
 ## Updates
 
-Run `update` in a new shell. It runs `chezmoi update`, then upgrades mise tools and APT packages (Ubuntu) or all unpinned WinGet packages (Windows), and reports a required reboot. Upgrades may restart services such as Docker and its containers.
+Run `update` in a new shell. It runs `chezmoi update`, then upgrades mise tools and APT packages (Ubuntu) or all unpinned WinGet packages (Windows), and reports a required reboot.
 
 Edit sources via `chezmoi cd`. Add packages to `winget.json`, the [Ubuntu package script](home/.chezmoiscripts/ubuntu/run_onchange_after_install-packages.sh.tmpl) or the [mise configuration](home/dot_config/mise/config.toml), preferring APT over mise; each reruns on the next apply when changed.
 

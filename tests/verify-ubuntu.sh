@@ -13,7 +13,9 @@ script="$repository/home/.chezmoiscripts/ubuntu/run_onchange_after_install-packa
 shellcheck "$0"
 
 # Bootstrap as in README, from this checkout instead of GitHub.
-curl -fsSL https://mise.jdx.dev/gpg-key.pub | sudo gpg --dearmor -o /etc/apt/keyrings/mise.gpg
+curl -fsSL https://mise.jdx.dev/gpg-key.pub -o /tmp/mise.asc
+gpg --show-keys --with-colons /tmp/mise.asc | grep -q '^fpr:::::::::24853EC9F655CE80B48E6C3A8B81C9D17413A06D:' &&
+    sudo gpg --dearmor -o /etc/apt/keyrings/mise.gpg /tmp/mise.asc
 printf '%s\n' 'Types: deb' 'URIs: https://mise.jdx.dev/deb' 'Suites: stable' 'Components: main' \
     'Signed-By: /etc/apt/keyrings/mise.gpg' | sudo tee /etc/apt/sources.list.d/mise.sources
 sudo apt-get update && sudo apt-get install -y mise
@@ -30,6 +32,7 @@ for command in chezmoi codex opencode claude tailscale docker zoxide; do
 done
 tmux -V
 id -nG "$(id -un)" | grep -qw docker
+sudo unattended-upgrade --dry-run --debug 2>&1 | grep 'Allowed origins' | grep -q 'site=mise.jdx.dev'
 test ! -e "$HOME/Documents"
 bash -ic 'type update z' > /dev/null 2>&1
 
