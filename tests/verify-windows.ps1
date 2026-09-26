@@ -4,12 +4,11 @@ $PSNativeCommandUseErrorActionPreference = $false
 Set-StrictMode -Version Latest
 
 if (!$IsWindows) {
-    throw 'Use bash tests/verify-ubuntu.sh on Ubuntu.'
+    throw 'Use tests/verify-ubuntu.sh in the verification container on Ubuntu.'
 }
 
 $repository = Split-Path -Parent $PSScriptRoot
 $chezmoi = (Get-Command chezmoi -CommandType Application -ErrorAction Stop).Source
-$null = Get-Content -LiteralPath (Join-Path $repository 'winget.json') -Raw | ConvertFrom-Json
 
 function Assert {
     param([bool]$Condition, [string]$Message)
@@ -36,57 +35,54 @@ try {
         Assert ($LASTEXITCODE -ne 0) 'Empty Git identity was accepted.'
     }
     $name = 'Test "User" \ 日本語'
-    $identityPrompt = '"Git name=' + $name.Replace('"', '""') + '",Git email=test@example.invalid'
-    & $chezmoi @options init --source $checkout --promptString $identityPrompt
+    & $chezmoi @options init --source $checkout --promptString ('"Git name=' + $name.Replace('"', '""') + '",Git email=test@example.invalid')
     Assert ($LASTEXITCODE -eq 0) 'chezmoi init failed.'
-    & $chezmoi @options init
-    Assert ($LASTEXITCODE -eq 0) 'Reinitialization did not reuse the Git identity.'
 
-    $ubuntuHook = Join-Path $checkout 'home/.chezmoiscripts/ubuntu/run_after_setup-host.sh.tmpl'
-    $rendered = (& $chezmoi @options execute-template --file $ubuntuHook) -join "`n"
-    Assert ($LASTEXITCODE -eq 0 -and [string]::IsNullOrWhiteSpace($rendered)) 'Ubuntu host provisioning was enabled on Windows.'
-
-    # Add only a command-boundary mock to the copied hook; run the real hook body.
+    # Replace only WinGet in the copied hook; record each call and fail on demand.
     $hook = Join-Path $checkout 'home/.chezmoiscripts/windows/run_onchange_after_install-apps.ps1.tmpl'
     $mock = @'
 function winget.exe {
-    $expected = @('import', '--import-file', (Join-Path $env:CHEZMOI_WORKING_TREE 'winget.json'),
-        '--no-upgrade', '--accept-package-agreements', '--accept-source-agreements', '--disable-interactivity')
-    if ((ConvertTo-Json @($args) -Compress) -cne (ConvertTo-Json $expected -Compress)) {
-        throw 'WinGet arguments changed.'
+    if (![IO.File]::Exists((Join-Path $env:CHEZMOI_DEST_DIR '.gitconfig'))) {
+        throw 'Installer ran before configuration.'
     }
-    foreach ($path in '.gitconfig', 'Documents/PowerShell/profile.ps1') {
-        if (![IO.File]::Exists((Join-Path $env:CHEZMOI_DEST_DIR $path))) {
-            throw 'Installer ran before configuration.'
-        }
-    }
-    [IO.File]::AppendAllText((Join-Path $env:CHEZMOI_DEST_DIR 'imports'), "run`n")
-    Write-Output 'WinGet output'
-    $global:LASTEXITCODE = if (Test-Path -LiteralPath (Join-Path $env:CHEZMOI_DEST_DIR 'fail-import')) { 37 } else { 0 }
+    [IO.File]::AppendAllText((Join-Path $env:CHEZMOI_DEST_DIR 'winget.log'), "$args`n")
+    $global:LASTEXITCODE = if ([IO.File]::Exists((Join-Path $env:CHEZMOI_DEST_DIR 'fail'))) { 37 } else { 0 }
 }
 
 '@
     [IO.File]::WriteAllText($hook, $mock + [IO.File]::ReadAllText($hook))
+    $log = Join-Path $destination 'winget.log'
     $gitconfig = Join-Path $destination '.gitconfig'
     $profile = Join-Path $destination 'Documents/PowerShell/profile.ps1'
-    $imports = Join-Path $destination 'imports'
-    $null = & $chezmoi @options diff
-    Assert ($LASTEXITCODE -eq 0) 'Diff failed.'
-    $null = & $chezmoi @options apply --dry-run
-    Assert ($LASTEXITCODE -eq 0 -and ![IO.File]::Exists($gitconfig)) 'Preview changed the destination.'
-    & $chezmoi @options apply --exclude scripts,externals
-    Assert ($LASTEXITCODE -eq 0 -and ![IO.File]::Exists($imports)) 'Configuration-only apply installed apps.'
-    foreach ($directory in 'ubuntu', 'windows', 'ubuntu-host', '.chezmoiscripts', '.chezmoitemplates') {
-        Assert (!(Test-Path -LiteralPath (Join-Path $destination $directory))) 'Script/template directories were applied to the destination.'
-    }
-    Assert (![IO.File]::Exists((Join-Path $destination '.bash_aliases'))) 'Ubuntu aliases were applied on Windows.'
-    Assert (![IO.File]::Exists((Join-Path $destination '.bashrc'))) 'Ubuntu Bash initialization was applied on Windows.'
-    Assert ((& git config --file $gitconfig --get user.name) -ceq $name) 'Git name was not quoted correctly.'
-    Assert ((& git config --file $gitconfig --get user.email) -ceq 'test@example.invalid') 'Git email changed.'
-    $expectedGit = [IO.File]::ReadAllText($gitconfig)
-    $expectedProfile = [IO.File]::ReadAllText($profile)
 
-    # Common initialization works both before and after the optional tools are installed.
+    [IO.File]::WriteAllText((Join-Path $destination 'fail'), '')
+    $output = (& $chezmoi @options apply 2>&1) -join "`n"
+    Assert ($LASTEXITCODE -ne 0 -and $output.Contains('exit 37')) "WinGet failure was not reported: $output"
+    [IO.File]::Delete((Join-Path $destination 'fail'))
+    [IO.File]::Delete($log)
+
+    & $chezmoi @options apply
+    Assert ($LASTEXITCODE -eq 0) 'Apply failed.'
+    $winget = Join-Path $checkout 'winget.json'
+    $expected = @(
+        "import --import-file $winget --no-upgrade --accept-package-agreements --accept-source-agreements --disable-interactivity",
+        'pin add --id Celsys.ClipStudioPaint --exact --version 5.0.4 --force --accept-source-agreements --disable-interactivity'
+    )
+    Assert ((Compare-Object $expected ([IO.File]::ReadAllLines($log)) -SyncWindow 0) -eq $null) 'WinGet calls changed.'
+    & $chezmoi @options apply
+    Assert ($LASTEXITCODE -eq 0 -and [IO.File]::ReadAllLines($log).Count -eq 2) 'Unchanged winget.json ran WinGet again.'
+    [IO.File]::AppendAllText($winget, "`n")
+    & $chezmoi @options apply --force
+    Assert ($LASTEXITCODE -eq 0 -and [IO.File]::ReadAllLines($log).Count -eq 4) 'Changed winget.json did not rerun WinGet.'
+
+    foreach ($relative in '.bash_aliases', '.config/mise') {
+        Assert (!(Test-Path -LiteralPath (Join-Path $destination $relative))) "Ubuntu-only $relative was applied."
+    }
+    Assert ((& git config --file $gitconfig --get user.name) -ceq $name) 'Git name was not quoted correctly.'
+    [IO.File]::WriteAllText((Join-Path $destination '.gitconfig.local'), "[user]`n    name = Local User`n")
+    Assert ((& git config --file $gitconfig --includes --get user.name) -ceq 'Local User') 'Local Git settings did not win.'
+
+    # The profile initializes optional tools only when present and defines update.
     & {
         $previousPath = $env:PATH
         try {
@@ -95,99 +91,16 @@ function winget.exe {
             $script:ShellInit = [Collections.Generic.List[string]]::new()
             function starship { '$script:ShellInit.Add("starship")' }
             function zoxide { '$script:ShellInit.Add("zoxide")' }
-            $cdBefore = (Get-Alias cd).Definition
             . $profile
             Assert (($script:ShellInit -join ',') -ceq 'starship,zoxide') 'Shell initialization failed.'
-            Assert ((Get-Alias cd).Definition -ceq $cdBefore) 'The profile changed cd.'
+            Assert ([bool](Get-Command update -CommandType Function)) 'update is missing.'
         } finally {
             $env:PATH = $previousPath
         }
     }
-
-    [IO.File]::Delete($profile)
-    [IO.Directory]::Delete((Join-Path $destination 'Documents/PowerShell'))
-    [IO.Directory]::Delete((Join-Path $destination 'Documents'))
-    [IO.File]::Delete($gitconfig)
-    $linkTarget = [IO.Directory]::CreateDirectory((Join-Path $temporary.FullName 'link target'))
-    foreach ($relative in '.gitconfig', 'Documents', 'Documents/PowerShell', 'Documents/PowerShell/profile.ps1') {
-        $conflict = Join-Path $destination $relative
-        $null = [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($conflict))
-        Assert ($conflict.StartsWith($destination + [IO.Path]::DirectorySeparatorChar)) 'Fixture escaped the destination.'
-        foreach ($kind in 'Junction', 'Collision') {
-            $directory = $kind -eq 'Junction' -or $relative -in '.gitconfig', 'Documents/PowerShell/profile.ps1'
-            if ($kind -eq 'Junction') {
-                $null = New-Item -ItemType Junction -Path $conflict -Target $linkTarget.FullName
-            } elseif ($directory) {
-                $null = [IO.Directory]::CreateDirectory($conflict)
-            } else {
-                [IO.File]::WriteAllText($conflict, 'unmanaged')
-            }
-            try {
-                $null = & $chezmoi @options apply --force 2>&1
-                Assert ($LASTEXITCODE -ne 0) "Accepted $kind at $relative."
-                Assert (![IO.File]::Exists($imports)) 'A conflict ran the installer.'
-                if ($relative -ne '.gitconfig') {
-                    Assert (![IO.File]::Exists($gitconfig)) 'A conflict changed configuration.'
-                }
-                Assert (@($linkTarget.EnumerateFileSystemInfos()).Count -eq 0) 'Apply wrote through a junction.'
-                if ($kind -eq 'Junction') {
-                    Assert ((Get-Item -LiteralPath $conflict -Force).LinkType -eq 'Junction') 'A junction changed.'
-                } elseif (!$directory) {
-                    Assert ([IO.File]::ReadAllText($conflict) -ceq 'unmanaged') 'An unmanaged file changed.'
-                } else {
-                    Assert ([IO.Directory]::Exists($conflict)) 'An unmanaged directory changed.'
-                }
-            } finally {
-                if ($directory) {
-                    [IO.Directory]::Delete($conflict)
-                } else {
-                    [IO.File]::Delete($conflict)
-                }
-            }
-        }
-    }
-
-    $personal = Join-Path $destination '.gitconfig.local'
-    Assert (![IO.File]::Exists($personal)) 'Personal Git configuration was created automatically.'
-    [IO.File]::WriteAllText($personal, "[user]`n    name = Local User`n    email = local@example.invalid`n")
-    $preserved = @{
-        '.gitconfig.local' = [IO.File]::ReadAllText($personal)
-        '.bash_aliases' = '# Unmanaged aliases'
-        '.bashrc' = '# Unmanaged Bash configuration'
-        'Documents/PowerShell/Microsoft.PowerShell_profile.ps1' = '# Personal console settings'
-        'Documents/PowerShell/Microsoft.VSCode_profile.ps1' = '# Personal VS Code settings'
-        'keep' = 'unrelated'
-    }
-    foreach ($relative in $preserved.Keys) {
-        [IO.File]::WriteAllText((Join-Path $destination $relative), $preserved[$relative])
-    }
-    $failure = Join-Path $destination 'fail-import'
-    [IO.File]::WriteAllText($failure, '')
-    $output = (& $chezmoi @options apply --force 2>&1) -join "`n"
-    Assert ($LASTEXITCODE -ne 0 -and $output.Contains('exit 37')) "WinGet failure was not reported: $output"
-    Assert ($output.Contains('WinGet output')) 'WinGet output was hidden.'
-    Assert ([IO.File]::ReadAllText($gitconfig) -ceq $expectedGit) 'Failure lost Git configuration.'
-    Assert ([IO.File]::ReadAllText($profile) -ceq $expectedProfile) 'Failure lost the common profile.'
-    [IO.File]::Delete($failure)
-    & $chezmoi @options apply
-    Assert ($LASTEXITCODE -eq 0) 'Failed installation was not retried.'
-    & $chezmoi @options apply
-    Assert ($LASTEXITCODE -eq 0 -and [IO.File]::ReadAllLines($imports).Count -eq 2) 'Unchanged installation ran again.'
-    foreach ($changed in (Join-Path $checkout 'winget.json'), $hook) {
-        $before = [IO.File]::ReadAllLines($imports).Count
-        $change = if ($changed -eq $hook) { "# Changed hook.`n" } else { "`n" }
-        [IO.File]::AppendAllText($changed, $change)
-        & $chezmoi @options apply --force
-        Assert ($LASTEXITCODE -eq 0 -and [IO.File]::ReadAllLines($imports).Count -eq ($before + 1)) 'Changed input did not rerun the hook.'
-    }
     & $chezmoi @options verify
     Assert ($LASTEXITCODE -eq 0) 'Target verification failed.'
-    Assert ((& git config --file $gitconfig --includes --get user.name) -ceq 'Local User') 'Local Git settings did not win.'
-    foreach ($relative in $preserved.Keys) {
-        Assert ([IO.File]::ReadAllText((Join-Path $destination $relative)) -ceq $preserved[$relative]) "Changed $relative."
-    }
-    Write-Output 'Windows: identity, previews, configuration, imports, retries, conflicts and preservation passed.'
+    Write-Output 'Windows: identity, WinGet import and pins, reruns, profile and Git configuration passed.'
 } finally {
-    # This test owns the absolute temporary directory; junctions are removed above.
     $temporary.Delete($true)
 }

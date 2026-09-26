@@ -1,0 +1,68 @@
+{{ if and (eq .chezmoi.os "linux") (eq .chezmoi.osRelease.id "ubuntu") -}}
+#!/usr/bin/env bash
+set -euo pipefail
+# mise tools: {{ include "dot_config/mise/config.toml" | sha256sum }}
+
+# shellcheck disable=SC1091
+. /etc/os-release
+GNUPGHOME=$(mktemp -d)
+export GNUPGHOME
+trap 'rm -rf -- "$GNUPGHOME"' EXIT
+
+apt_install() {
+    sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-remove \
+        -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold -- "$@"
+}
+
+# Add a vendor APT repository that trusts only the key with the expected fingerprint.
+repository() {
+    local name=$1 url=$2 fingerprint=$3 key=/etc/apt/keyrings/$1.gpg
+    shift 3
+
+    curl --fail --location --silent --show-error "$url" | gpg --quiet --import
+    gpg --export "$fingerprint" > "$GNUPGHOME/$name.gpg"
+    if [[ ! -s $GNUPGHOME/$name.gpg ]]; then
+        echo "The $name signing key does not match $fingerprint." >&2
+        exit 1
+    fi
+    sudo install -D -m 644 "$GNUPGHOME/$name.gpg" "$key"
+    printf '%s\n' 'Types: deb' "$@" "Signed-By: $key" | sudo tee "/etc/apt/sources.list.d/$name.sources" > /dev/null
+}
+
+sudo apt-get update
+apt_install ca-certificates curl gnupg openssh-server pciutils tmux zoxide
+
+repository docker https://download.docker.com/linux/ubuntu/gpg 9DC858229FC7DD38854AE2D88D81803C0EBFCD88 \
+    'URIs: https://download.docker.com/linux/ubuntu' "Suites: $VERSION_CODENAME" 'Components: stable'
+repository tailscale "https://pkgs.tailscale.com/stable/ubuntu/$VERSION_CODENAME.noarmor.gpg" 2596A99EAAB33821893C0A79458CA832957F5868 \
+    'URIs: https://pkgs.tailscale.com/stable/ubuntu' "Suites: $VERSION_CODENAME" 'Components: main'
+repository claude-code https://downloads.claude.ai/keys/claude-code.asc 31DDDE24DDFAB679F42D7BD2BAA929FF1A7ECACE \
+    'URIs: https://downloads.claude.ai/claude-code/apt/stable' 'Suites: stable' 'Components: main'
+packages=(docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin tailscale claude-code)
+
+gpu=$(lspci -d 10de::03xx)
+if [[ -n $gpu ]]; then
+    repository nvidia-container-toolkit https://nvidia.github.io/libnvidia-container/gpgkey C95B321B61E88C1809C4F759DDCAE044F796ECB0 \
+        "URIs: https://nvidia.github.io/libnvidia-container/stable/deb/$(dpkg --print-architecture)" 'Suites: /'
+    packages+=(nvidia-container-toolkit ubuntu-drivers-common)
+fi
+
+sudo apt-get update
+apt_install "${packages[@]}"
+sudo usermod -aG docker "$(id -un)"
+
+if [[ -n $gpu ]]; then
+    sudo ubuntu-drivers install --gpgpu
+    # The GPGPU driver omits nvidia-smi; add the utilities for the installed branch.
+    branch=$(dpkg-query -W -f='${Package}\n' 'nvidia-headless-no-dkms-*' | sed 's/^nvidia-headless-no-dkms-//')
+    apt_install "nvidia-utils-$branch"
+fi
+
+mise install
+
+if [[ -e /run/reboot-required ]]; then
+    echo 'Reboot to finish the installation.'
+else
+    echo 'Log out and back in to use Docker without sudo.'
+fi
+{{ end -}}

@@ -10,7 +10,7 @@ Scope: the given PR or branch, else `git diff main...HEAD` plus uncommitted chan
 Check, in this order:
 
 1. **Correctness**: templates render on every OS branch (Windows, Ubuntu, other); scripts stop on errors and propagate installer failures; paths with spaces and non-ASCII work; a second `chezmoi apply` changes nothing.
-2. **[Setup policy](../../../README.md#setup-policy)**: flag anything that replaces or upgrades existing installations, disables vendor updates, removes packages, force-replaces settings, touches sudoers, restarts services or reboots, downloads without checksum verification, pins versions a tool's own updater owns, or adds credentials or personal agent settings.
+2. **[Setup policy](../../../README.md#setup-policy)**: flag installs outside package managers (piped scripts, raw downloads), vendor APT repositories not trusted by key fingerprint, mise where APT works, a tool from two managers, pins without a stated reason, removing packages, force-replacing settings, touching sudoers, rebooting, or adding credentials or personal agent settings.
 3. **Boundaries**: chezmoi sources stay in `home/`; unmanaged personal overrides are never created or overwritten; setup and usage docs live only in README; new behavior has a test in `tests/`.
 4. **Ponytail**: what can be deleted, reused or replaced with a native feature.
 

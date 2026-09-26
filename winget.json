@@ -14,6 +14,7 @@
         { "PackageIdentifier": "Starship.Starship" },
         { "PackageIdentifier": "ajeetdsouza.zoxide" },
 
+        { "PackageIdentifier": "Anthropic.ClaudeCode" },
         { "PackageIdentifier": "OpenAI.Codex" },
         { "PackageIdentifier": "SST.opencode" },
 
@@ -25,7 +26,7 @@
 
         { "PackageIdentifier": "Gyan.FFmpeg" },
         { "PackageIdentifier": "BlenderFoundation.Blender" },
-        { "PackageIdentifier": "Celsys.ClipStudioPaint" },
+        { "PackageIdentifier": "Celsys.ClipStudioPaint", "Version": "5.0.4" },
         { "PackageIdentifier": "Cockos.REAPER" },
         { "PackageIdentifier": "Bambulab.Bambustudio" },
 
