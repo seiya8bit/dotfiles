@@ -20,7 +20,7 @@ wsl --install --no-distribution --web-download
 winget install Git.Git twpayne.chezmoi Microsoft.PowerShell --exact
 ```
 
-No WinGet? Update App Installer in Microsoft Store. After any restart, open **PowerShell 7.5+** (not administrator). Documents must not be redirected.
+No WinGet? Update App Installer in Microsoft Store. After any restart, open **PowerShell 7.5+** (not administrator). Apply stops if Documents is redirected (e.g. OneDrive backup), because PowerShell would not load the profile.
 
 ```powershell
 Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
@@ -31,7 +31,7 @@ Then: select `JetBrainsMono Nerd Font Mono` in Windows Terminal, enable Docker D
 
 ## Ubuntu Server
 
-Installs Docker/Compose/Buildx, SSH, Tailscale, Claude Code, mise, tmux and zoxide with APT, Codex, OpenCode and chezmoi with mise, and NVIDIA drivers/Container Toolkit when an NVIDIA GPU is present. You join the **root-equivalent Docker group**.
+Installs Docker/Compose/Buildx, SSH, Tailscale, Claude Code, mise, tmux and zoxide with APT, Codex, OpenCode and chezmoi with mise, and NVIDIA drivers/Container Toolkit when an NVIDIA GPU is present. You join the **root-equivalent Docker group**. Ubuntu on WSL gets only the Git configuration.
 
 ```sh
 git clone https://github.com/seiya8bit/dotfiles ~/.local/share/chezmoi

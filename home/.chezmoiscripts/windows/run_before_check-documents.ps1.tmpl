@@ -1,0 +1,9 @@
+{{ if and (eq .chezmoi.os "windows") (eq .chezmoi.destDir .chezmoi.homeDir) -}}
+$ErrorActionPreference = 'Stop'
+
+# PowerShell reads profile.ps1 from the Documents known folder, which OneDrive backup can move out of ~/Documents.
+$documents = [Environment]::GetFolderPath('MyDocuments')
+if ([IO.Path]::GetFullPath($documents) -ne [IO.Path]::GetFullPath((Join-Path $HOME 'Documents'))) {
+    throw "Documents is redirected to $documents, so PowerShell would not load the applied profile. Stop OneDrive's Documents backup, then apply again."
+}
+{{ end -}}
