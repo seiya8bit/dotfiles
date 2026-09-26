@@ -37,7 +37,7 @@ git clone https://github.com/seiya8bit/dotfiles ~/.local/share/chezmoi
 ~/.local/share/chezmoi/bootstrap.sh
 ```
 
-Reboot if asked (NVIDIA: enroll Secure Boot at the console), otherwise reconnect: you are now in the **root-equivalent** `docker` group. With an NVIDIA GPU, `docker run --rm --gpus all ubuntu:26.04 nvidia-smi` shows it.
+Reboot if asked, otherwise reconnect: you are now in the **root-equivalent** `docker` group.
 
 Sign in: `sudo tailscale up`, `codex login --device-auth` (enable device code login in ChatGPT first), `claude`, and `opencode` then `/connect`. Ubuntu on WSL gets only the Git configuration.
 
@@ -55,7 +55,7 @@ Behavior changes: `./tests/verify-windows.ps1` (WinGet mocked) and `bash tests/v
 
 CI also runs weekly for upstream package and key changes. GitHub stops that schedule after 60 idle days: re-enable it, and run it manually before any setup.
 
-**Unverified: services, SSH, Secure Boot, NVIDIA and real WinGet installs.** Record hardware acceptance below; delete the NVIDIA branch if it has no row when the next LTS is adopted.
+**Unverified: services, SSH and real WinGet installs.** Record hardware acceptance below.
 
-| Date | OS / architecture | GPU / kernel / driver / Toolkit | Result |
-|---|---|---|---|
+| Date | OS / architecture | Result |
+|---|---|---|
