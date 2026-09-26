@@ -1,3 +1,4 @@
+# Terminals opened before WinGet added these to PATH lack them until restarted.
 if (Get-Command starship -ErrorAction SilentlyContinue) {
     Invoke-Expression (&starship init powershell)
 }
