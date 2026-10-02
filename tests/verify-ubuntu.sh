@@ -32,7 +32,7 @@ chezmoi execute-template --file "$script" | shellcheck -
 shellcheck --shell=bash "$HOME/.bash_aliases"
 test -z "$(chezmoi status)"
 
-for command in chezmoi codex opencode claude tailscale docker zoxide; do
+for command in chezmoi codex claude tailscale docker zoxide; do
     "$command" --version
 done
 tmux -V

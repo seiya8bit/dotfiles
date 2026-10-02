@@ -17,8 +17,6 @@
         { "PackageIdentifier": "Anthropic.Claude" },
         { "PackageIdentifier": "Anthropic.ClaudeCode" },
         { "PackageIdentifier": "OpenAI.Codex" },
-        { "PackageIdentifier": "SST.OpenCodeDesktop" },
-        { "PackageIdentifier": "SST.opencode" },
 
         { "PackageIdentifier": "Google.Chrome" },
         { "PackageIdentifier": "Discord.Discord" },

@@ -39,7 +39,7 @@ git clone https://github.com/seiya8bit/dotfiles ~/.local/share/chezmoi
 
 Reboot if asked, otherwise reconnect: you are now in the **root-equivalent** `docker` group.
 
-Sign in: `sudo tailscale up`, `codex login --device-auth` (enable device code login in ChatGPT first), `claude`, and `opencode` then `/connect`. Ubuntu on WSL gets only the Git configuration.
+Sign in: `sudo tailscale up`, `codex login --device-auth` (enable device code login in ChatGPT first), and `claude`. Ubuntu on WSL gets only the Git configuration.
 
 ## Maintenance
 

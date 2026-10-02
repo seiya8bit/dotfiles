@@ -2,4 +2,3 @@
 [tools]
 chezmoi = "latest"
 codex = "latest"
-"github:anomalyco/opencode" = "latest"
