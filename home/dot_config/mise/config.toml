@@ -1,4 +1,0 @@
-# Personal CLIs without an APT repository; `update` keeps them at the latest release.
-[tools]
-chezmoi = "latest"
-codex = "latest"

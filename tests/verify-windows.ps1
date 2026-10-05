@@ -38,7 +38,7 @@ try {
     & $chezmoi @options init --source $checkout --promptString ('"Git name=' + $name.Replace('"', '""') + '",Git email=test@example.invalid')
     Assert ($LASTEXITCODE -eq 0) 'chezmoi init failed.'
 
-    # Replace only WinGet in the copied hook; record each call and fail on demand.
+    # Replace WinGet and mise in the copied hook; record each call, fail on demand and report installed packages.
     $hook = Join-Path $checkout 'home/.chezmoiscripts/windows/run_onchange_after_install-apps.ps1.tmpl'
     $mock = @'
 function winget.exe {
@@ -46,7 +46,12 @@ function winget.exe {
         throw 'Installer ran before configuration.'
     }
     [IO.File]::AppendAllText((Join-Path $env:CHEZMOI_DEST_DIR 'winget.log'), "$args`n")
-    $global:LASTEXITCODE = if ([IO.File]::Exists((Join-Path $env:CHEZMOI_DEST_DIR 'fail'))) { 37 } else { 0 }
+    $global:LASTEXITCODE = if ([IO.File]::Exists((Join-Path $env:CHEZMOI_DEST_DIR 'fail'))) { 37 }
+        elseif ($args[0] -eq 'install') { -1978335135 } else { 0 }
+}
+function mise {
+    [IO.File]::AppendAllText((Join-Path $env:CHEZMOI_DEST_DIR 'winget.log'), "mise $args`n")
+    $global:LASTEXITCODE = 0
 }
 
 '@
@@ -66,18 +71,23 @@ function winget.exe {
     $winget = Join-Path $checkout 'winget.json'
     $expected = @(
         "import --import-file $winget --no-upgrade --accept-package-agreements --accept-source-agreements --disable-interactivity",
-        'pin add --id Celsys.ClipStudioPaint --exact --version 5.0.4 --force --accept-source-agreements --disable-interactivity'
+        'pin add --id Celsys.ClipStudioPaint --exact --version 5.0.4 --force --accept-source-agreements --disable-interactivity',
+        'install --id Microsoft.VisualStudio.BuildTools --exact --no-upgrade --override --quiet --wait --norestart --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended --accept-package-agreements --accept-source-agreements --disable-interactivity',
+        'mise install'
     )
     Assert ((Compare-Object $expected ([IO.File]::ReadAllLines($log)) -SyncWindow 0) -eq $null) 'WinGet calls changed.'
     & $chezmoi @options apply
-    Assert ($LASTEXITCODE -eq 0 -and [IO.File]::ReadAllLines($log).Count -eq 2) 'Unchanged winget.json ran WinGet again.'
+    Assert ($LASTEXITCODE -eq 0 -and [IO.File]::ReadAllLines($log).Count -eq 4) 'Unchanged winget.json ran WinGet again.'
     [IO.File]::AppendAllText($winget, "`n")
     & $chezmoi @options apply
-    Assert ($LASTEXITCODE -eq 0 -and [IO.File]::ReadAllLines($log).Count -eq 4) 'Changed winget.json did not rerun WinGet.'
+    Assert ($LASTEXITCODE -eq 0 -and [IO.File]::ReadAllLines($log).Count -eq 8) 'Changed winget.json did not rerun WinGet.'
+    [IO.File]::AppendAllText((Join-Path $checkout 'home/dot_config/mise/config.toml.tmpl'), "`n")
+    & $chezmoi @options apply
+    Assert ($LASTEXITCODE -eq 0 -and [IO.File]::ReadAllLines($log).Count -eq 12) 'Changed mise configuration did not rerun mise.'
 
-    foreach ($relative in '.bash_aliases', '.config/mise') {
-        Assert (!(Test-Path -LiteralPath (Join-Path $destination $relative))) "Ubuntu-only $relative was applied."
-    }
+    Assert (!(Test-Path -LiteralPath (Join-Path $destination '.bash_aliases'))) 'Ubuntu-only .bash_aliases was applied.'
+    $mise = [IO.File]::ReadAllText((Join-Path $destination '.config/mise/config.toml'))
+    Assert ($mise.Contains('node = "lts"') -and !$mise.Contains('codex')) 'Windows mise configuration is wrong.'
     Assert ((& git config --file $gitconfig --get user.name) -ceq $name) 'Git name was not quoted correctly.'
     [IO.File]::WriteAllText((Join-Path $destination '.gitconfig.local'), "[user]`n    name = Local User`n")
     Assert ((& git config --file $gitconfig --includes --get user.name) -ceq 'Local User') 'Local Git settings did not win.'
@@ -91,8 +101,9 @@ function winget.exe {
             $script:ShellInit = [Collections.Generic.List[string]]::new()
             function starship { '$script:ShellInit.Add("starship")' }
             function zoxide { '$script:ShellInit.Add("zoxide")' }
+            function mise { '$script:ShellInit.Add("mise")' }
             . $profile
-            Assert (($script:ShellInit -join ',') -ceq 'starship,zoxide') 'Shell initialization failed.'
+            Assert (($script:ShellInit -join ',') -ceq 'starship,zoxide,mise') 'Shell initialization failed.'
             Assert ([bool](Get-Command update -CommandType Function)) 'update is missing.'
         } finally {
             $env:PATH = $previousPath
@@ -110,7 +121,7 @@ function winget.exe {
 
     & $chezmoi @options verify
     Assert ($LASTEXITCODE -eq 0) 'Target verification failed.'
-    Write-Output 'Windows: identity, WinGet import and pins, reruns, profile, Documents guard and Git configuration passed.'
+    Write-Output 'Windows: identity, WinGet import, pins and Build Tools, mise, reruns, profile, Documents guard and Git configuration passed.'
 } finally {
     $temporary.Delete($true)
 }
