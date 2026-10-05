@@ -20,11 +20,13 @@ foreach ($package in (Get-Content -LiteralPath $file -Raw | ConvertFrom-Json).So
     }
 }
 
-# Rust's MSVC target links with the C++ workload, which import cannot select. 0x8A150061: already installed.
+# Rust's MSVC target links with the C++ workload, which import cannot select.
 winget.exe install --id Microsoft.VisualStudio.BuildTools --exact --no-upgrade `
     --override '--quiet --wait --norestart --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended' `
     --accept-package-agreements --accept-source-agreements --disable-interactivity
-if ($LASTEXITCODE -notin 0, -1978335135) {
+if ($LASTEXITCODE -eq -1978334967) { # 0x8A150109
+    Write-Output 'Reboot to finish the Build Tools installation.'
+} elseif ($LASTEXITCODE -notin 0, -1978335135) { # 0x8A150061: already installed
     throw "Build Tools install failed (exit $LASTEXITCODE)."
 }
 

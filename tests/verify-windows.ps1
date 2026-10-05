@@ -47,7 +47,8 @@ function winget.exe {
     }
     [IO.File]::AppendAllText((Join-Path $env:CHEZMOI_DEST_DIR 'winget.log'), "$args`n")
     $global:LASTEXITCODE = if ([IO.File]::Exists((Join-Path $env:CHEZMOI_DEST_DIR 'fail'))) { 37 }
-        elseif ($args[0] -eq 'install') { -1978335135 } else { 0 }
+        elseif ($args[0] -ne 'install') { 0 }
+        elseif ([IO.File]::Exists((Join-Path $env:CHEZMOI_DEST_DIR 'reboot'))) { -1978334967 } else { -1978335135 }
 }
 function mise {
     [IO.File]::AppendAllText((Join-Path $env:CHEZMOI_DEST_DIR 'winget.log'), "mise $args`n")
@@ -84,6 +85,11 @@ function mise {
     [IO.File]::AppendAllText((Join-Path $checkout 'home/dot_config/mise/config.toml.tmpl'), "`n")
     & $chezmoi @options apply
     Assert ($LASTEXITCODE -eq 0 -and [IO.File]::ReadAllLines($log).Count -eq 12) 'Changed mise configuration did not rerun mise.'
+    [IO.File]::WriteAllText((Join-Path $destination 'reboot'), '')
+    [IO.File]::AppendAllText($winget, "`n")
+    $output = (& $chezmoi @options apply 2>&1) -join "`n"
+    Assert ($LASTEXITCODE -eq 0 -and $output.Contains('Reboot to finish') -and [IO.File]::ReadAllLines($log).Count -eq 16) "A pending reboot stopped the install: $output"
+    [IO.File]::Delete((Join-Path $destination 'reboot'))
 
     Assert (!(Test-Path -LiteralPath (Join-Path $destination '.bash_aliases'))) 'Ubuntu-only .bash_aliases was applied.'
     $mise = [IO.File]::ReadAllText((Join-Path $destination '.config/mise/config.toml'))
