@@ -9,6 +9,8 @@
         { "PackageIdentifier": "DEVCOM.JetBrainsMonoNerdFont" },
         { "PackageIdentifier": "Docker.DockerDesktop" },
         { "PackageIdentifier": "Microsoft.WSL" },
+        { "PackageIdentifier": "jdx.mise" },
+        { "PackageIdentifier": "Rustlang.Rustup" },
 
         { "PackageIdentifier": "Microsoft.PowerShell" },
         { "PackageIdentifier": "Starship.Starship" },

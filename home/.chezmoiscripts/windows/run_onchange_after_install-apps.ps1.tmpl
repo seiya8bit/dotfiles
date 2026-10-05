@@ -3,6 +3,7 @@
 $ErrorActionPreference = 'Stop'
 
 # winget.json: {{ include "../winget.json" | sha256sum }}
+# mise tools: {{ include "dot_config/mise/config.toml.tmpl" | sha256sum }}
 $file = Join-Path $env:CHEZMOI_WORKING_TREE 'winget.json'
 winget.exe import --import-file $file --no-upgrade `
     --accept-package-agreements --accept-source-agreements --disable-interactivity
@@ -17,5 +18,22 @@ foreach ($package in (Get-Content -LiteralPath $file -Raw | ConvertFrom-Json).So
     if ($LASTEXITCODE -ne 0) {
         throw "WinGet pin failed for $($package.PackageIdentifier) (exit $LASTEXITCODE)."
     }
+}
+
+# Rust's MSVC target links with the C++ workload, which import cannot select.
+winget.exe install --id Microsoft.VisualStudio.BuildTools --exact --no-upgrade `
+    --override '--quiet --wait --norestart --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended' `
+    --accept-package-agreements --accept-source-agreements --disable-interactivity
+if ($LASTEXITCODE -eq -1978334967) { # 0x8A150109
+    Write-Output 'Reboot to finish the Build Tools installation.'
+} elseif ($LASTEXITCODE -notin 0, -1978335135) { # 0x8A150061: already installed
+    throw "Build Tools install failed (exit $LASTEXITCODE)."
+}
+
+# WinGet adds mise to PATH for new processes only.
+$env:PATH = [Environment]::GetEnvironmentVariable('PATH', 'User') + ';' + $env:PATH
+mise install
+if ($LASTEXITCODE -ne 0) {
+    throw "mise install failed (exit $LASTEXITCODE)."
 }
 {{ end -}}

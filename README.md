@@ -5,10 +5,10 @@ Windows 11 x64 and Ubuntu Server 26.04 LTS (amd64/arm64), applied to fresh insta
 ## Policy
 
 - Preserve data and settings, then limit disruption, then stay repeatable and low-maintenance. Stop on errors; don't repair.
-- Install only through package managers, one per tool: WinGet (`winget.json`); APT from the Ubuntu archive, else vendor repositories trusted by key fingerprint; mise only for CLIs without an APT repository. No piped install scripts or unmanaged downloads.
+- Install only through package managers, one per tool: WinGet (`winget.json`); APT from the Ubuntu archive, else vendor repositories trusted by key fingerprint; mise for Windows language runtimes and for Ubuntu CLIs without an APT repository; rustup for Rust. No piped install scripts or unmanaged downloads.
 - Track latest releases. Pin only with a `Version` in `winget.json` (CLIP STUDIO PAINT 5.0.4: perpetual license).
 - Never uninstall, change sudoers or reboot automatically; removing a package from a list leaves it installed.
-- Project runtimes live in containers. Credentials and personal agent settings stay out of this repository.
+- Windows develops natively: mise and rustup hold global defaults, and projects pin versions in their own files (`mise.toml`, `rust-toolchain.toml`). On Ubuntu, project runtimes live in containers. Credentials and personal agent settings stay out of this repository.
 
 ## Windows
 
@@ -43,7 +43,7 @@ Sign in: `sudo tailscale up`, `codex login --device-auth` (enable device code lo
 
 ## Maintenance
 
-`update` (in a new shell) runs `chezmoi update`, upgrades everything unpinned and reports a required reboot. Add packages to `winget.json`, the [Ubuntu package script](home/.chezmoiscripts/ubuntu/run_onchange_after_install-packages.sh.tmpl) or the [mise configuration](home/dot_config/mise/config.toml); changed lists rerun on the next apply.
+`update` (in a new shell) runs `chezmoi update`, upgrades everything unpinned and reports a required reboot. Add packages to `winget.json`, the [Ubuntu package script](home/.chezmoiscripts/ubuntu/run_onchange_after_install-packages.sh.tmpl) or the [mise configuration](home/dot_config/mise/config.toml.tmpl); changed lists rerun on the next apply.
 
 Never managed: `~/.gitconfig.local`, host-specific `$PROFILE` and `~/.bashrc`. Change Git identity with `chezmoi init --prompt`.
 
