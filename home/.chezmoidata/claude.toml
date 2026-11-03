@@ -1,0 +1,2 @@
+[tools.claude]
+winget = "Anthropic.Claude"

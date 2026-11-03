@@ -1,0 +1,6 @@
+[tools.git]
+winget = "Git.Git"
+
+# Nobody answers an editor an agent opens, so `git commit` without a message fails instead of hanging.
+[tools.git.ai]
+GIT_EDITOR = "true"

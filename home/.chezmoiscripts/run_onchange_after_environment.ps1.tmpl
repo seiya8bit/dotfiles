@@ -1,0 +1,40 @@
+{{ if eq .chezmoi.destDir .chezmoi.homeDir -}}
+$ErrorActionPreference = 'Stop'
+
+# Agents start shells without a profile, so what they need lives in the user environment.
+$variables = [ordered]@{
+{{- range $name, $tool := .tools }}{{ range $variable, $value := (index $tool "ai") }}
+    '{{ $variable }}' = '{{ $value | replace "'" "''" }}'
+{{- end }}{{ end }}
+}
+$path = @(
+{{- range $name, $tool := .tools }}{{ range (index $tool "path") }}
+    '{{ . | replace "'" "''" }}'
+{{- end }}{{ end }}
+)
+
+$environment = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey('Environment')
+try {
+    # DOTFILES_VARIABLES and DOTFILES_PATH record the last apply, so dropped declarations are undone.
+    foreach ($name in ("$($environment.GetValue('DOTFILES_VARIABLES'))" -split ';' -ne '')) {
+        if (!$variables.Contains($name)) {
+            $environment.DeleteValue($name, $false)
+        }
+    }
+    foreach ($variable in $variables.GetEnumerator()) {
+        $environment.SetValue($variable.Key, $variable.Value)
+    }
+    $environment.SetValue('DOTFILES_VARIABLES', $variables.Keys -join ';')
+
+    # Read PATH unexpanded to keep the user's %VARIABLE% references, but drop expanded copies of ours.
+    $previous = "$($environment.GetValue('DOTFILES_PATH'))" -split ';' -ne ''
+    $expanded = $path | ForEach-Object { [Environment]::ExpandEnvironmentVariables($_) }
+    $entries = ("$($environment.GetValue('Path', '', 'DoNotExpandEnvironmentNames'))" -split ';' -ne '') |
+        Where-Object { $_ -notin $previous -and [Environment]::ExpandEnvironmentVariables($_) -notin $expanded }
+    $environment.SetValue('Path', (@($path) + @($entries)) -join ';', 'ExpandString')
+} finally {
+    $environment.Dispose()
+}
+# .NET also tells running programs, such as Explorer, to reload the environment.
+[Environment]::SetEnvironmentVariable('DOTFILES_PATH', $path -join ';', 'User')
+{{ end -}}

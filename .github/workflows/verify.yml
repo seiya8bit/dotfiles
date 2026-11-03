@@ -2,9 +2,6 @@ name: Verify
 
 on:
   pull_request:
-  schedule:
-    # Catch upstream package, repository and key changes before the next setup needs them.
-    - cron: '0 3 * * 1'
   workflow_dispatch:
 
 permissions:
@@ -37,21 +34,3 @@ jobs:
       - name: Verify Windows
         shell: pwsh
         run: ./tests/verify-windows.ps1
-
-  ubuntu:
-    # Required status checks match this name, so it must not change with the Ubuntu release.
-    name: ubuntu (${{ matrix.arch }})
-    strategy:
-      matrix:
-        include:
-          - { arch: amd64, runner: ubuntu-26.04 }
-          - { arch: arm64, runner: ubuntu-26.04-arm }
-    runs-on: ${{ matrix.runner }}
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v7
-      - name: Verify Ubuntu
-        env:
-          # mise resolves latest releases through the GitHub API; avoid anonymous rate limits.
-          GITHUB_TOKEN: ${{ github.token }}
-        run: bash tests/verify-ubuntu.sh

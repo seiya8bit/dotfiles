@@ -1,3 +1,6 @@
+{{- if ne .chezmoi.os "windows" -}}
+{{- fail "These dotfiles support Windows 11 only" -}}
+{{- end -}}
 {{- $gitName := promptStringOnce . "gitName" "Git name" | trim -}}
 {{- $gitEmail := promptStringOnce . "gitEmail" "Git email" | trim -}}
 {{- if or (not $gitName) (not $gitEmail) -}}
@@ -8,8 +11,7 @@ sourceDir = {{ .chezmoi.workingTree | quote }}
 [data]
 gitName = {{ $gitName | quote }}
 gitEmail = {{ $gitEmail | quote }}
-{{ if eq .chezmoi.os "windows" }}
+
 [interpreters.ps1]
 command = "pwsh"
 args = ["-NoLogo", "-NoProfile", "-File"]
-{{ end -}}

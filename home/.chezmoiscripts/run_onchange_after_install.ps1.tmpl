@@ -1,0 +1,39 @@
+#Requires -Version 7.5
+$ErrorActionPreference = 'Stop'
+
+function Install-Package {
+    param([string]$Id, [string]$Source, [string]$Version, [string]$Override)
+
+    $arguments = @('install', '--id', $Id, '--exact', '--source', $Source, '--no-upgrade')
+    if ($Version) { $arguments += '--version', $Version }
+    if ($Override) { $arguments += '--override', $Override }
+    winget.exe @arguments --accept-package-agreements --accept-source-agreements --disable-interactivity
+    if ($LASTEXITCODE -eq -1978334967) { # 0x8A150109
+        Write-Output "Reboot to finish installing $Id."
+    } elseif ($LASTEXITCODE -notin 0, -1978335135) { # 0x8A150061: already installed
+        throw "WinGet failed to install $Id (exit $LASTEXITCODE)."
+    }
+
+    # The pin keeps `winget upgrade --all` from moving a listed version.
+    if ($Version) {
+        winget.exe pin add --id $Id --exact --version $Version --force --accept-source-agreements --disable-interactivity
+        if ($LASTEXITCODE -ne 0) {
+            throw "WinGet failed to pin $Id (exit $LASTEXITCODE)."
+        }
+    }
+}
+{{ range $name, $tool := .tools }}{{ with (index $tool "winget") }}
+Install-Package -Id '{{ . }}' -Source '{{ (index $tool "source") | default "winget" }}'
+{{- with (index $tool "version") }} -Version '{{ . }}'{{ end }}
+{{- with (index $tool "override") }} -Override '{{ . | replace "'" "''" }}'{{ end }}
+{{- end }}{{ end }}
+{{- if hasKey .tools "mise" }}
+
+# mise configuration: {{ includeTemplate "dot_config/mise/config.toml.tmpl" . | sha256sum }}
+# WinGet adds mise to PATH for new processes only.
+$env:PATH = [Environment]::GetEnvironmentVariable('PATH', 'User') + ';' + $env:PATH
+mise install
+if ($LASTEXITCODE -ne 0) {
+    throw "mise install failed (exit $LASTEXITCODE)."
+}
+{{- end }}

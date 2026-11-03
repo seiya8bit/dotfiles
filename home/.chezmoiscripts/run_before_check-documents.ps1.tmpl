@@ -1,4 +1,4 @@
-{{ if and (eq .chezmoi.os "windows") (eq .chezmoi.destDir .chezmoi.homeDir) -}}
+{{ if eq .chezmoi.destDir .chezmoi.homeDir -}}
 $ErrorActionPreference = 'Stop'
 
 # PowerShell reads profile.ps1 from the Documents known folder, which OneDrive backup can move out of ~/Documents.

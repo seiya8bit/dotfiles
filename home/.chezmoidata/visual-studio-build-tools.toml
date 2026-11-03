@@ -1,0 +1,4 @@
+# Rust's MSVC target links with the C++ workload.
+[tools.visual-studio-build-tools]
+winget = "Microsoft.VisualStudio.BuildTools"
+override = "--quiet --wait --norestart --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
