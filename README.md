@@ -1,64 +1,71 @@
 # dotfiles
 
-Windows 11 x64, applied to fresh installs. Agents run most commands here, so the defaults serve them and conveniences for people are opt-in.
-
-## Policy
-
-- Preserve data and settings, then limit disruption, then stay repeatable and low-maintenance. Stop on errors; don't repair.
-- Agents first: every process, including shells agents start without a profile, gets the same PATH and unmodified commands. Aliases, prompts and interactive defaults load only in PowerShell attached to a terminal without `CLAUDECODE`, `CODEX_SANDBOX`, `GEMINI_CLI`, `CURSOR_AGENT` or `AI_AGENT`, so a missing human setting costs a person, never an agent. Claude Code sets `GIT_EDITOR` itself, so nothing here does.
-- One file per tool: `home/.chezmoidata/<tool>.toml` holds its package and everything it configures, so deleting the file undoes all of it except the installed package.
-- Install only through package managers, one per tool: WinGet; mise for language runtimes and CLIs without a WinGet package; rustup for Rust toolchains. No piped install scripts or unmanaged downloads.
-- Track latest releases. Pin only with a WinGet `version` (CLIP STUDIO PAINT 5.0.4: perpetual license) or a `mise` version `latest` cannot reach (`cf` beta: mise skips prereleases, so bump it by hand and return to `latest` at 1.0.0).
-- Never uninstall, change system settings or reboot automatically; removing a tool leaves its package installed.
-- mise and rustup hold global defaults, and projects pin versions in their own files (`mise.toml`, `rust-toolchain.toml`). Credentials and personal agent settings stay out of this repository.
+Windows 11 x64 dotfiles. Agents: start at [AGENTS.md](AGENTS.md).
 
 ## Setup
 
-Finish Windows Update and enable CPU virtualization; for AMD GPUs run [AMD Auto-Detect](https://www.amd.com/en/resources/support-articles/faqs/GPU-131.html) (Recommended driver, no Factory Reset). In administrator PowerShell (Docker Desktop runs on WSL 2):
+1. **Person:** finish Windows Update, enable CPU virtualization, and for AMD GPUs run [AMD Auto-Detect](https://www.amd.com/en/resources/support-articles/faqs/GPU-131.html) (no Factory Reset).
+2. **Person:** in administrator PowerShell, then restart if asked:
 
-```powershell
-wsl --install --no-distribution --web-download
-winget install Git.Git twpayne.chezmoi Microsoft.PowerShell --exact
-```
+   ```powershell
+   wsl --install --no-distribution --web-download
+   winget install Git.Git twpayne.chezmoi Microsoft.PowerShell --exact
+   ```
 
-After any restart, in PowerShell 7 (not administrator):
+3. In PowerShell 7, not administrator, with the user's Git identity (CSV-quote a value containing a comma):
 
-```powershell
-Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
-chezmoi init --apply https://github.com/seiya8bit/dotfiles
-```
+   ```powershell
+   Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+   chezmoi init --apply --promptString "Git name=<name>,Git email=<email>" https://github.com/seiya8bit/dotfiles
+   ```
 
-Then restart open terminals and agent apps so they see the new environment, select `JetBrainsMono Nerd Font Mono` in Windows Terminal, enable Docker Desktop's WSL 2 engine and sign in to apps.
+4. Restart terminals and agent apps. `chezmoi verify` must exit 0 and `mise ls --missing` must print nothing.
+5. **Person:** select `JetBrainsMono Nerd Font Mono` in Windows Terminal, enable Docker Desktop's WSL 2 engine, and sign in: `gh auth login`, `claude`, `cf auth login`, `supabase login`, Tailscale, desktop apps.
 
-## Tools
+## Tasks
 
-Each file in [home/.chezmoidata](home/.chezmoidata) declares one tool, `[tools.<file name>]`, with any of:
+- **Add a tool:** create `home/.chezmoidata/<tool>.toml` with `[tools.<tool>]`. Check the ID with `winget show --id <id> --exact --source winget`. For mise, check `Backend` in `mise tool <name>`: the name can be another project.
+- **Remove a tool:** delete its file. The package stays installed.
+- **Upgrade:** agents run the body of `update` from the [profile](home/Documents/PowerShell/profile.ps1.tmpl), adding `--disable-interactivity` to WinGet.
+- **Bump cf:** set `mise` in [cf.toml](home/.chezmoidata/cf.toml) to `npm view cf dist-tags.latest`, after checking `npm view cf engines` against the Node LTS.
+- **Change Git identity (Person):** `chezmoi init --prompt`.
+
+## Tool settings
+
+A tool needs `winget` or `mise`.
 
 | Setting | Effect |
 |---|---|
 | `winget` | WinGet package identifier |
-| `source` | `msstore` for Microsoft Store packages (default `winget`) |
-| `version` | Installs and pins this version |
+| `source` | `msstore` for Store packages (default `winget`) |
+| `version` | Installs and pins this WinGet version |
 | `override` | Installer arguments |
 | `mise` | mise version of the tool named like the file |
 | `mise_name` | mise tool name when it differs from the file name |
-| `path` | User PATH entries, for every process |
+| `path` | User PATH entries for every process; prefer `%VARIABLE%` |
 | `human` | PowerShell run only in human shells, in file name order |
 | `upgrade` | Command `update` runs after upgrading WinGet packages |
 
-Agents see `path` through the user environment, which shells inherit even without a profile; the [profile](home/Documents/PowerShell/profile.ps1.tmpl) stops before `human` for them.
+## Failures
 
-## Maintenance
-
-`update` (in a new terminal) runs `chezmoi update`, upgrades unpinned WinGet packages and runs each tool's `upgrade`. Add or remove a tool file to change what is installed; changed tools rerun the installers on the next apply.
-
-Never managed: `~/.gitconfig.local` and the host-specific `$PROFILE`, which loads in agent shells too unless it checks for them. Change Git identity with `chezmoi init --prompt`.
+| Symptom | Action |
+|---|---|
+| `Documents is redirected to ...` | **Person:** stop OneDrive's Documents backup, then apply again |
+| `Reboot to finish installing <id>.` | Tell the user; apply continues |
+| `WinGet failed to install <id> (exit <code>)` | Report the code |
+| `mise install failed (exit <code>)` | Run `mise install` and report the failing tool |
+| `No version is set for shim: <tool>` | Add the tool, or `mise reshim` if it was removed |
 
 ## Verification
 
-Always run `git diff --check`. Changes to `home/` or `tests/`: `./tests/verify-windows.ps1` (WinGet and mise mocked; it changes the user environment only on CI runners); docs: check that every link, path and command they mention exists.
+```powershell
+git diff --check
+./tests/verify-windows.ps1
+```
 
-**Unverified: real WinGet installs and a full apply on a fresh machine.** Record hardware acceptance below.
+`chezmoi` must be a real binary, not a shim without a version. The test must end with `... passed.`. It mocks WinGet and mise; only CI runs the environment script. Renaming the required `windows` CI job means changing the ruleset.
+
+**Not covered: real WinGet installs and a full apply on a fresh machine.** Record acceptance here:
 
 | Date | OS / architecture | Result |
 |---|---|---|
