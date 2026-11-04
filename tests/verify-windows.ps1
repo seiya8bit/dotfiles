@@ -52,7 +52,7 @@ try {
         ConvertFrom-Json -AsHashtable
     Assert ($LASTEXITCODE -eq 0 -and $files.Count -eq $names.Count -and $files.Count -gt 0) 'Tool files could not be read.'
     $tools = @{}
-    $settingNames = 'winget', 'source', 'version', 'override', 'mise', 'mise_name', 'path', 'human', 'upgrade'
+    $settingNames = 'winget', 'version', 'override', 'mise', 'mise_name', 'path', 'human', 'upgrade'
     foreach ($file in $files.GetEnumerator()) {
         $tool = $file.Key -replace '\.toml$'
         Assert ($file.Key -ceq "$tool.toml" -and $tool -cmatch '^[a-z0-9]+(-[a-z0-9]+)*$') "$($file.Key) is not a lowercase .toml name."
@@ -65,9 +65,8 @@ try {
             Assert $valid "$($file.Key) has an unknown or malformed setting: $($setting.Key)."
         }
         Assert ($settings.Contains('winget') -or $settings.Contains('mise')) "$($file.Key) installs nothing."
-        Assert (!$settings.Contains('source') -or $settings.source -in 'winget', 'msstore') "$($file.Key) has an unknown source."
         Assert (!$settings.Contains('mise_name') -or $settings.Contains('mise')) "$($file.Key) names a mise tool without a version."
-        Assert (!($settings.Contains('version') -or $settings.Contains('override') -or $settings.Contains('source')) -or $settings.Contains('winget')) "$($file.Key) sets WinGet options without a package."
+        Assert (!($settings.Contains('version') -or $settings.Contains('override')) -or $settings.Contains('winget')) "$($file.Key) sets WinGet options without a package."
         $tools[$tool] = $settings
     }
 
@@ -106,7 +105,7 @@ function mise {
     [Array]::Sort($names, [StringComparer]::Ordinal)
     $expected = foreach ($tool in $names | Where-Object { $tools[$_].Contains('winget') }) {
         $settings = $tools[$tool]
-        $call = "install --id $($settings.winget) --exact --source $($settings['source'] ?? 'winget') --no-upgrade"
+        $call = "install --id $($settings.winget) --exact --source winget --no-upgrade"
         if ($settings.Contains('version')) { $call += " --version $($settings.version)" }
         if ($settings.Contains('override')) { $call += " --override $($settings.override)" }
         "$call --accept-package-agreements --accept-source-agreements --disable-interactivity"
@@ -117,8 +116,7 @@ function mise {
     $expected = @($expected) + 'mise install'
     $calls = [IO.File]::ReadAllLines($log)
     Assert (($expected -join "`n") -ceq ($calls -join "`n")) "Install calls changed: $($calls -join "`n")"
-    foreach ($call in 'install --id 9PLM9XGG6VKS --exact --source msstore --no-upgrade',
-        'pin add --id Celsys.ClipStudioPaint --exact --version 5.0.4',
+    foreach ($call in 'pin add --id Celsys.ClipStudioPaint --exact --version 5.0.4',
         'install --id Microsoft.VisualStudio.BuildTools --exact --source winget --no-upgrade --override --quiet --wait --norestart --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended') {
         Assert (@($calls | Where-Object { $_.StartsWith($call) }).Count -eq 1) "Missing install call: $call"
     }
