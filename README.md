@@ -43,7 +43,6 @@ A tool needs `winget` or `mise`.
 | `override` | Installer arguments |
 | `mise` | mise version of the tool named like the file |
 | `mise_name` | mise tool name when it differs from the file name |
-| `path` | User PATH entries for every process; prefer `%VARIABLE%` |
 | `human` | PowerShell run only in human shells, in file name order |
 | `upgrade` | Command `update` runs after upgrading WinGet packages |
 

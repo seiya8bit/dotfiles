@@ -1,4 +1,3 @@
-# zoxide wraps the prompt, so it must load after starship; human setup loads in tool name order.
 [tools.zoxide]
 winget = "ajeetdsouza.zoxide"
 human = 'Invoke-Expression (zoxide init powershell --cmd cd | Out-String)'
