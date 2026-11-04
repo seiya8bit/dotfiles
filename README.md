@@ -7,7 +7,7 @@ Windows 11 x64, applied to fresh installs. Agents run most commands here, so the
 - Preserve data and settings, then limit disruption, then stay repeatable and low-maintenance. Stop on errors; don't repair.
 - Agents first: every process, including shells agents start without a profile, gets commands that behave as agents expect and nothing that waits for input. Aliases, prompts and interactive defaults load only in PowerShell attached to a terminal without `CLAUDECODE`, `CODEX_SANDBOX`, `GEMINI_CLI`, `CURSOR_AGENT` or `AI_AGENT`, so a missing human setting costs a person, never an agent.
 - One file per tool: `home/.chezmoidata/<tool>.toml` holds its package and everything it configures, so deleting the file undoes all of it except the installed package.
-- Install only through package managers, one per tool: WinGet; mise for language runtimes; rustup for Rust toolchains. No piped install scripts or unmanaged downloads.
+- Install only through package managers, one per tool: WinGet; mise for language runtimes and CLIs without a WinGet package; rustup for Rust toolchains. No piped install scripts or unmanaged downloads.
 - Track latest releases. Pin only with a WinGet `version` (CLIP STUDIO PAINT 5.0.4: perpetual license).
 - Never uninstall, change system settings or reboot automatically; removing a tool leaves its package installed.
 - mise and rustup hold global defaults, and projects pin versions in their own files (`mise.toml`, `rust-toolchain.toml`). Credentials and personal agent settings stay out of this repository.
@@ -40,7 +40,8 @@ Each file in [home/.chezmoidata](home/.chezmoidata) declares one tool, `[tools.<
 | `source` | `msstore` for Microsoft Store packages (default `winget`) |
 | `version` | Installs and pins this version |
 | `override` | Installer arguments |
-| `mise` | mise version of the runtime named like the file |
+| `mise` | mise version of the tool named like the file |
+| `mise_name` | mise tool name when it differs from the file name |
 | `path` | User PATH entries, for every process |
 | `ai` | User variables for every process, removed again in human shells |
 | `human` | PowerShell run only in human shells, in file name order |

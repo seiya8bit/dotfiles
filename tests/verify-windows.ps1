@@ -59,7 +59,7 @@ try {
         $settings = $file.Value.tools[$tool]
         foreach ($setting in $settings.GetEnumerator()) {
             $valid = switch -CaseSensitive ($setting.Key) {
-                { $_ -in 'winget', 'source', 'version', 'override', 'mise', 'upgrade', 'human' } { $setting.Value -is [string] -and $setting.Value }
+                { $_ -in 'winget', 'source', 'version', 'override', 'mise', 'mise_name', 'upgrade', 'human' } { $setting.Value -is [string] -and $setting.Value }
                 'path' { @($setting.Value | Where-Object { $_ -isnot [string] -or !$_ }).Count -eq 0 }
                 'ai' { $setting.Value -is [Collections.IDictionary] -and @($setting.Value.Values | Where-Object { $_ -isnot [string] }).Count -eq 0 }
                 default { $false }
@@ -68,6 +68,7 @@ try {
         }
         Assert ($settings.Contains('winget') -or $settings.Contains('mise')) "$($file.Key) installs nothing."
         Assert (!$settings.Contains('source') -or $settings.source -in 'winget', 'msstore') "$($file.Key) has an unknown source."
+        Assert (!$settings.Contains('mise_name') -or $settings.Contains('mise')) "$($file.Key) names a mise tool without a version."
         Assert (!($settings.Contains('version') -or $settings.Contains('override') -or $settings.Contains('source')) -or $settings.Contains('winget')) "$($file.Key) sets WinGet options without a package."
         $tools[$tool] = $settings
     }
@@ -133,7 +134,7 @@ function mise {
     [IO.File]::WriteAllText((Join-Path $data 'test-runtime.toml'), "[tools.test-runtime]`nmise = `"1`"`n")
     & $chezmoi @options apply
     Assert ($LASTEXITCODE -eq 0 -and [IO.File]::ReadAllLines($log).Count -gt $count) 'A new mise tool did not rerun mise.'
-    Assert ([IO.File]::ReadAllText((Join-Path $destination '.config/mise/config.toml')).Contains('test-runtime = "1"')) 'mise configuration missed a tool.'
+    Assert ([IO.File]::ReadAllText((Join-Path $destination '.config/mise/config.toml')).Contains('"test-runtime" = "1"')) 'mise configuration missed a tool.'
     $count = [IO.File]::ReadAllLines($log).Count
     [IO.File]::WriteAllText((Join-Path $destination 'reboot'), '')
     [IO.File]::Delete((Join-Path $data 'test-runtime.toml'))
@@ -145,7 +146,7 @@ function mise {
     Assert ($LASTEXITCODE -eq 0) 'Apply after removing test tools failed.'
 
     $mise = [IO.File]::ReadAllText((Join-Path $destination '.config/mise/config.toml'))
-    Assert ($mise -ceq "[tools]`nnode = `"lts`"`npnpm = `"latest`"`npython = `"latest`"`n") "mise configuration is wrong: $mise"
+    Assert ($mise -ceq "[tools]`n`"npm:cf`" = `"latest`"`n`"node`" = `"lts`"`n`"pnpm`" = `"latest`"`n`"python`" = `"latest`"`n`"supabase`" = `"latest`"`n") "mise configuration is wrong: $mise"
     Assert ((& git config --file $gitconfig --get user.name) -ceq $name) 'Git name was not quoted correctly.'
     [IO.File]::WriteAllText((Join-Path $destination '.gitconfig.local'), "[user]`n    name = Local User`n")
     Assert ((& git config --file $gitconfig --includes --get user.name) -ceq 'Local User') 'Local Git settings did not win.'

@@ -1,4 +1,4 @@
 [tools]
 {{- range $name, $tool := .tools }}{{ with (index $tool "mise") }}
-{{ $name }} = {{ . | quote }}
+{{ (index $tool "mise_name") | default $name | quote }} = {{ . | quote }}
 {{- end }}{{ end }}
