@@ -18,7 +18,7 @@ Keep entries current; delete those that no longer constrain anything. Counts are
 ## Fonts
 
 - **Japanese:** BIZ UDGothic.
-- **Everything else:** JetBrainsMono Nerd Font, listed by Windows as `JetBrainsMono NF`.
+- **Everything else:** JetBrainsMono Nerd Font, from the `jetbrains-mono-nerd-font` tool. Terminals use its fixed-width family, `JetBrainsMono NFM`.
 
 ## Pinned versions
 
