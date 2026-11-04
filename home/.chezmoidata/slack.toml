@@ -1,0 +1,2 @@
+[tools.slack]
+winget = "SlackTechnologies.Slack"

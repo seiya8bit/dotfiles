@@ -1,0 +1,3 @@
+[tools.chatgpt]
+winget = "9PLM9XGG6VKS"
+source = "msstore"

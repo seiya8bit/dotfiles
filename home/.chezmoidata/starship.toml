@@ -1,0 +1,3 @@
+[tools.starship]
+winget = "Starship.Starship"
+human = 'Invoke-Expression (&starship init powershell)'

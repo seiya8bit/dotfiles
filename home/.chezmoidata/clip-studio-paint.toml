@@ -1,0 +1,4 @@
+# Perpetual license for 5.0.
+[tools.clip-studio-paint]
+winget = "Celsys.ClipStudioPaint"
+version = "5.0.4"

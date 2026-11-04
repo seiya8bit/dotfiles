@@ -1,0 +1,5 @@
+[tools.mise]
+winget = "jdx.mise"
+# Shims resolve each project's pinned versions without shell activation, for agents and people alike.
+path = ['%LOCALAPPDATA%\mise\shims']
+upgrade = "mise upgrade"

@@ -1,13 +1,4 @@
-{{ if eq .chezmoi.os "windows" -}}
-# Global defaults; projects pin their own versions.
 [tools]
-node = "lts"
-
-[settings]
-idiomatic_version_file_enable_tools = ["node"]
-{{ else -}}
-# Personal CLIs without an APT repository; `update` keeps them at the latest release.
-[tools]
-chezmoi = "latest"
-codex = "latest"
-{{ end -}}
+{{- range $name, $tool := .tools }}{{ with (index $tool "mise") }}
+{{ (index $tool "mise_name") | default $name | quote }} = {{ . | quote }}
+{{- end }}{{ end }}

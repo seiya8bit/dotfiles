@@ -1,0 +1,2 @@
+[tools.chrome]
+winget = "Google.Chrome"

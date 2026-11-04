@@ -1,18 +1,20 @@
 # dotfiles
 
-Windows 11 x64 and Ubuntu Server 26.04 LTS (amd64/arm64), applied to fresh installs.
+Windows 11 x64, applied to fresh installs. Agents run most commands here, so the defaults serve them and conveniences for people are opt-in.
 
 ## Policy
 
 - Preserve data and settings, then limit disruption, then stay repeatable and low-maintenance. Stop on errors; don't repair.
-- Install only through package managers, one per tool: WinGet (`winget.json`); APT from the Ubuntu archive, else vendor repositories trusted by key fingerprint; mise for Windows language runtimes and for Ubuntu CLIs without an APT repository; rustup for Rust. No piped install scripts or unmanaged downloads.
-- Track latest releases. Pin only with a `Version` in `winget.json` (CLIP STUDIO PAINT 5.0.4: perpetual license).
-- Never uninstall, change sudoers or reboot automatically; removing a package from a list leaves it installed.
-- Windows develops natively: mise and rustup hold global defaults, and projects pin versions in their own files (`mise.toml`, `rust-toolchain.toml`). On Ubuntu, project runtimes live in containers. Credentials and personal agent settings stay out of this repository.
+- Agents first: every process, including shells agents start without a profile, gets the same PATH and unmodified commands. Aliases, prompts and interactive defaults load only in PowerShell attached to a terminal without `CLAUDECODE`, `CODEX_SANDBOX`, `GEMINI_CLI`, `CURSOR_AGENT` or `AI_AGENT`, so a missing human setting costs a person, never an agent. Claude Code sets `GIT_EDITOR` itself, so nothing here does.
+- One file per tool: `home/.chezmoidata/<tool>.toml` holds its package and everything it configures, so deleting the file undoes all of it except the installed package.
+- Install only through package managers, one per tool: WinGet; mise for language runtimes and CLIs without a WinGet package; rustup for Rust toolchains. No piped install scripts or unmanaged downloads.
+- Track latest releases. Pin only with a WinGet `version` (CLIP STUDIO PAINT 5.0.4: perpetual license) or a `mise` version `latest` cannot reach (`cf` beta: mise skips prereleases, so bump it by hand and return to `latest` at 1.0.0).
+- Never uninstall, change system settings or reboot automatically; removing a tool leaves its package installed.
+- mise and rustup hold global defaults, and projects pin versions in their own files (`mise.toml`, `rust-toolchain.toml`). Credentials and personal agent settings stay out of this repository.
 
-## Windows
+## Setup
 
-Finish Windows Update and enable CPU virtualization; for AMD GPUs run [AMD Auto-Detect](https://www.amd.com/en/resources/support-articles/faqs/GPU-131.html) (Recommended driver, no Factory Reset). In administrator PowerShell:
+Finish Windows Update and enable CPU virtualization; for AMD GPUs run [AMD Auto-Detect](https://www.amd.com/en/resources/support-articles/faqs/GPU-131.html) (Recommended driver, no Factory Reset). In administrator PowerShell (Docker Desktop runs on WSL 2):
 
 ```powershell
 wsl --install --no-distribution --web-download
@@ -26,36 +28,37 @@ Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 chezmoi init --apply https://github.com/seiya8bit/dotfiles
 ```
 
-Then select `JetBrainsMono Nerd Font Mono` in Windows Terminal, enable Docker Desktop's WSL 2 engine and sign in to apps.
+Then restart open terminals and agent apps so they see the new environment, select `JetBrainsMono Nerd Font Mono` in Windows Terminal, enable Docker Desktop's WSL 2 engine and sign in to apps.
 
-## Ubuntu Server
+## Tools
 
-Setup disables SSH password login, so first add your key to `~/.ssh/authorized_keys` (installer import or `ssh-copy-id`).
+Each file in [home/.chezmoidata](home/.chezmoidata) declares one tool, `[tools.<file name>]`, with any of:
 
-```sh
-git clone https://github.com/seiya8bit/dotfiles ~/.local/share/chezmoi
-~/.local/share/chezmoi/bootstrap.sh
-```
+| Setting | Effect |
+|---|---|
+| `winget` | WinGet package identifier |
+| `source` | `msstore` for Microsoft Store packages (default `winget`) |
+| `version` | Installs and pins this version |
+| `override` | Installer arguments |
+| `mise` | mise version of the tool named like the file |
+| `mise_name` | mise tool name when it differs from the file name |
+| `path` | User PATH entries, for every process |
+| `human` | PowerShell run only in human shells, in file name order |
+| `upgrade` | Command `update` runs after upgrading WinGet packages |
 
-Reboot if asked, otherwise reconnect: you are now in the **root-equivalent** `docker` group.
-
-Sign in: `sudo tailscale up`, `codex login --device-auth` (enable device code login in ChatGPT first), and `claude`. Ubuntu on WSL gets only the Git configuration.
+Agents see `path` through the user environment, which shells inherit even without a profile; the [profile](home/Documents/PowerShell/profile.ps1.tmpl) stops before `human` for them.
 
 ## Maintenance
 
-`update` (in a new shell) runs `chezmoi update`, upgrades everything unpinned and reports a required reboot. Add packages to `winget.json`, the [Ubuntu package script](home/.chezmoiscripts/ubuntu/run_onchange_after_install-packages.sh.tmpl) or the [mise configuration](home/dot_config/mise/config.toml.tmpl); changed lists rerun on the next apply.
+`update` (in a new terminal) runs `chezmoi update`, upgrades unpinned WinGet packages and runs each tool's `upgrade`. Add or remove a tool file to change what is installed; changed tools rerun the installers on the next apply.
 
-Never managed: `~/.gitconfig.local`, host-specific `$PROFILE` and `~/.bashrc`. Change Git identity with `chezmoi init --prompt`.
-
-New Ubuntu LTS: change `FROM` in [tests/Dockerfile](tests/Dockerfile), the CI runners and this README's versions in one PR.
+Never managed: `~/.gitconfig.local` and the host-specific `$PROFILE`, which loads in agent shells too unless it checks for them. Change Git identity with `chezmoi init --prompt`.
 
 ## Verification
 
-Always run `git diff --check`. Changes that reach Windows: `./tests/verify-windows.ps1` (WinGet mocked); changes that reach Ubuntu: `bash tests/verify-ubuntu.sh` (Docker, real packages); docs: check that every link, path and command they mention exists.
+Always run `git diff --check`. Changes to `home/` or `tests/`: `./tests/verify-windows.ps1` (WinGet and mise mocked; it changes the user environment only on CI runners); docs: check that every link, path and command they mention exists.
 
-CI also runs weekly for upstream package and key changes. GitHub stops that schedule after 60 idle days: re-enable it, and run it manually before any setup.
-
-**Unverified: services, SSH and real WinGet installs.** Record hardware acceptance below.
+**Unverified: real WinGet installs and a full apply on a fresh machine.** Record hardware acceptance below.
 
 | Date | OS / architecture | Result |
 |---|---|---|

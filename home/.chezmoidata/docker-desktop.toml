@@ -1,0 +1,2 @@
+[tools.docker-desktop]
+winget = "Docker.DockerDesktop"
