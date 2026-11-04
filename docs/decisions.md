@@ -1,6 +1,6 @@
 # Decisions
 
-Keep entries current; delete those that no longer constrain anything. Counts are from 7,317 agent commands on this machine, as of 2026-11-04.
+Keep entries current; delete those that no longer constrain anything. Counts are from agent transcripts and PowerShell history on this machine, as of 2026-11-04.
 
 ## Design
 
@@ -13,7 +13,6 @@ Keep entries current; delete those that no longer constrain anything. Counts are
 - **mise shims on PATH:** agent shells skip profiles, so `mise activate` would not reach them. Cost: `mise.toml` `[env]` does not load. PATH is read unexpanded to keep `%VARIABLE%`, and only this entry is managed, so it stays if mise goes.
 - **Bitwarden SSH agent:** keys stay in Bitwarden. Git uses Windows OpenSSH because Git for Windows' ssh cannot read the agent's named pipe. The `ssh-agent` service would compete for that pipe, and disabling it is a Person step because it is a system setting.
 - **No scheduled CI:** the test mocks WinGet and mise, so a schedule adds nothing.
-- **Agent-led:** the user delegated development and decisions here to agents.
 - **No Claude Code deny rules:** SSH keys stay in Bitwarden, `pip` has 0 runs and Windows has no `sudo`, leaving only `.env`. That does not justify managing the personal `~/.claude/settings.json`.
 - **Docs:** `AGENTS.md` loads every session, so it stays small. One decisions file needs no index, unlike per-file ADRs.
 
