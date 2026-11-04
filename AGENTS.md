@@ -10,7 +10,7 @@ Windows 11 x64 dotfiles, applied with chezmoi. Agents are the primary users.
 
 Agents lead development and decisions here: decide from evidence, record why in Decisions and report it. Ask the user only for personal data or what only a person can do. Change this section only on the user's decision or new evidence.
 
-- Preserve data and settings, then limit disruption, then stay low-maintenance. Stop on errors; don't repair.
+- Preserve data and settings, then limit disruption, then stay low-maintenance. Stop on errors; don't repair beyond [Failures](README.md#failures).
 - Every process gets the same PATH and unmodified commands. Conveniences go in `human`.
 - Install only through package managers, one per tool: WinGet; mise for runtimes, tools projects pin, and CLIs without a WinGet package; rustup for Rust toolchains.
 - Tool files set global defaults; projects pin their own versions.
