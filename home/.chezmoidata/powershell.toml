@@ -1,2 +1,4 @@
 [tools.powershell]
 winget = "Microsoft.PowerShell"
+# Windows Terminal starts in cp932, which garbles UTF-8 output from native commands.
+human = '[Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)'

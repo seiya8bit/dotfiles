@@ -166,6 +166,7 @@ function mise {
         . ([scriptblock]::Create((@($statements | Select-Object -Skip 1).Extent.Text -join "`n")))
         Assert (($script:ShellInit -join ',') -ceq 'zoxide') 'Shell initialization failed.'
         Assert ((Get-Alias ls).Definition -ceq 'Show-Directory') 'ls does not use eza for people.'
+        Assert ([Console]::OutputEncoding.WebName -ceq 'utf-8') 'Human shells do not use UTF-8.'
         Assert ((Get-Command yolo -CommandType Function).Definition.Contains('claude --dangerously-skip-permissions')) 'yolo is missing for people.'
         $update = (Get-Command update -CommandType Function).Definition
         Assert ($update.Contains('mise upgrade') -and $update.Contains('rustup update')) 'update misses tool upgrades.'
