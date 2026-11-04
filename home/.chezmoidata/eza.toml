@@ -1,0 +1,6 @@
+[tools.eza]
+winget = "eza-community.eza"
+human = '''
+function Show-Directory { eza --group-directories-first --icons=auto @args }
+Set-Alias ls Show-Directory -Force
+'''

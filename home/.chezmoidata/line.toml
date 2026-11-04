@@ -1,0 +1,4 @@
+# Not on WinGet.
+[tools.line]
+winget = "XPFCC4CD725961"
+source = "msstore"

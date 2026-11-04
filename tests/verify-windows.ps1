@@ -52,7 +52,7 @@ try {
         ConvertFrom-Json -AsHashtable
     Assert ($LASTEXITCODE -eq 0 -and $files.Count -eq $names.Count -and $files.Count -gt 0) 'Tool files could not be read.'
     $tools = @{}
-    $settingNames = 'winget', 'version', 'override', 'mise', 'mise_name', 'path', 'human', 'upgrade'
+    $settingNames = 'winget', 'source', 'version', 'override', 'mise', 'mise_name', 'path', 'human', 'upgrade'
     foreach ($file in $files.GetEnumerator()) {
         $tool = $file.Key -replace '\.toml$'
         Assert ($file.Key -ceq "$tool.toml" -and $tool -cmatch '^[a-z0-9]+(-[a-z0-9]+)*$') "$($file.Key) is not a lowercase .toml name."
@@ -65,8 +65,9 @@ try {
             Assert $valid "$($file.Key) has an unknown or malformed setting: $($setting.Key)."
         }
         Assert ($settings.Contains('winget') -or $settings.Contains('mise')) "$($file.Key) installs nothing."
+        Assert (!$settings.Contains('source') -or $settings.source -in 'winget', 'msstore') "$($file.Key) has an unknown source."
         Assert (!$settings.Contains('mise_name') -or $settings.Contains('mise')) "$($file.Key) names a mise tool without a version."
-        Assert (!($settings.Contains('version') -or $settings.Contains('override')) -or $settings.Contains('winget')) "$($file.Key) sets WinGet options without a package."
+        Assert (!($settings.Contains('version') -or $settings.Contains('override') -or $settings.Contains('source')) -or $settings.Contains('winget')) "$($file.Key) sets WinGet options without a package."
         $tools[$tool] = $settings
     }
 
@@ -105,7 +106,7 @@ function mise {
     [Array]::Sort($names, [StringComparer]::Ordinal)
     $expected = foreach ($tool in $names | Where-Object { $tools[$_].Contains('winget') }) {
         $settings = $tools[$tool]
-        $call = "install --id $($settings.winget) --exact --source winget --no-upgrade"
+        $call = "install --id $($settings.winget) --exact --source $($settings['source'] ?? 'winget') --no-upgrade"
         if ($settings.Contains('version')) { $call += " --version $($settings.version)" }
         if ($settings.Contains('override')) { $call += " --override $($settings.override)" }
         "$call --accept-package-agreements --accept-source-agreements --disable-interactivity"
@@ -116,7 +117,8 @@ function mise {
     $expected = @($expected) + 'mise install'
     $calls = [IO.File]::ReadAllLines($log)
     Assert (($expected -join "`n") -ceq ($calls -join "`n")) "Install calls changed: $($calls -join "`n")"
-    foreach ($call in 'pin add --id Celsys.ClipStudioPaint --exact --version 5.0.4',
+    foreach ($call in 'install --id XPFCC4CD725961 --exact --source msstore --no-upgrade',
+        'pin add --id Celsys.ClipStudioPaint --exact --version 5.0.4',
         'install --id Microsoft.VisualStudio.BuildTools --exact --source winget --no-upgrade --override --quiet --wait --norestart --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended') {
         Assert (@($calls | Where-Object { $_.StartsWith($call) }).Count -eq 1) "Missing install call: $call"
     }
@@ -148,6 +150,7 @@ function mise {
     Assert ($mise -ceq "[tools]`n$($entries -join "`n")`n") "mise configuration is wrong: $mise"
     Assert ($mise.Contains('"npm:cf" = ') -and !$mise.Contains('"cf" = ')) 'cf resolves to the Cloud Foundry CLI.'
     Assert ((& git config --file $gitconfig --get user.name) -ceq $name) 'Git name was not quoted correctly.'
+    Assert ((& git config --file $gitconfig --get core.sshCommand) -ceq 'C:/Windows/System32/OpenSSH/ssh.exe') 'Git does not use Windows OpenSSH.'
     [IO.File]::WriteAllText((Join-Path $destination '.gitconfig.local'), "[user]`n    name = Local User`n")
     Assert ((& git config --file $gitconfig --includes --get user.name) -ceq 'Local User') 'Local Git settings did not win.'
 
@@ -159,9 +162,13 @@ function mise {
     & {
         $script:ShellInit = [Collections.Generic.List[string]]::new()
         function starship { '$script:ShellInit.Add("starship")' }
-        function zoxide { '$script:ShellInit.Add("zoxide")' }
+        function zoxide {
+            Assert ("$args" -ceq 'init powershell --cmd cd') 'zoxide does not replace cd for people.'
+            '$script:ShellInit.Add("zoxide")'
+        }
         . ([scriptblock]::Create((@($statements | Select-Object -Skip 1).Extent.Text -join "`n")))
         Assert (($script:ShellInit -join ',') -ceq 'starship,zoxide') 'Shell initialization failed.'
+        Assert ((Get-Alias ls).Definition -ceq 'Show-Directory') 'ls does not use eza for people.'
         $update = (Get-Command update -CommandType Function).Definition
         Assert ($update.Contains('mise upgrade') -and $update.Contains('rustup update')) 'update misses tool upgrades.'
     }
