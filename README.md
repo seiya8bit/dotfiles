@@ -15,7 +15,6 @@ Windows 11 x64 dotfiles. Agents: start at [AGENTS.md](AGENTS.md).
 3. In PowerShell 7, not administrator, with the user's Git identity (CSV-quote a value containing a comma):
 
    ```powershell
-   Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
    chezmoi init --apply --promptString "Git name=<name>,Git email=<email>" https://github.com/seiya8bit/dotfiles
    ```
 
