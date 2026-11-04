@@ -149,6 +149,10 @@ function mise {
     Assert ((& git config --file $gitconfig --get user.name) -ceq $name) 'Git name was not quoted correctly.'
     Assert ((& git config --file $gitconfig --get core.sshCommand) -ceq 'C:/Windows/System32/OpenSSH/ssh.exe') 'Git does not use Windows OpenSSH.'
     Assert ((& git config --file $gitconfig --type bool --get core.longPaths) -ceq 'true') 'Git does not allow long paths.'
+    $repositoryCheck = Join-Path $temporary.FullName 'ignore check'
+    & git init --quiet $repositoryCheck
+    & git -C $repositoryCheck -c "core.excludesFile=$(Join-Path $destination '.config/git/ignore')" check-ignore --quiet --no-index 'app/.claude/settings.local.json'
+    Assert ($LASTEXITCODE -eq 0) 'Global Git ignores do not cover Claude Code local settings.'
     [IO.File]::WriteAllText((Join-Path $destination '.gitconfig.local'), "[user]`n    name = Local User`n")
     Assert ((& git config --file $gitconfig --includes --get user.name) -ceq 'Local User') 'Local Git settings did not win.'
 
