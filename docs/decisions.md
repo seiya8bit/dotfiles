@@ -12,6 +12,7 @@ Keep entries current; delete those that no longer constrain anything. Counts are
 - **No agent-only variables:** Claude Code sets `GIT_EDITOR=true` itself and no other agent is installed. Rejected: the same variable in the user environment, which agents started from a human shell lost and which disabled editors in other human shells. Revisit if another agent is installed.
 - **mise shims on PATH:** agent shells skip profiles, so `mise activate` would not reach them. Cost: `mise.toml` `[env]` does not load. PATH is read unexpanded to keep `%VARIABLE%`, and only this entry is managed, so it stays if mise goes.
 - **Bitwarden SSH agent:** keys stay in Bitwarden. Git uses Windows OpenSSH because Git for Windows' ssh cannot read the agent's named pipe. The `ssh-agent` service would compete for that pipe, and disabling it is a Person step because it is a system setting.
+- **`.wslconfig`:** `sparseVhd` applies only to new disks, so it must exist before Docker Desktop's first start.
 - **No scheduled CI:** the test mocks WinGet and mise, so a schedule adds nothing.
 - **No Claude Code deny rules:** SSH keys stay in Bitwarden, `pip` has 0 runs and Windows has no `sudo`, leaving only `.env`. That does not justify managing the personal `~/.claude/settings.json`.
 - **Docs:** `AGENTS.md` loads every session, so it stays small. One decisions file needs no index, unlike per-file ADRs.
