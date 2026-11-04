@@ -27,6 +27,7 @@ Keep entries current; delete those that no longer constrain anything. Counts are
 ## Pinned versions
 
 - **CLIP STUDIO PAINT 5.0.4:** perpetual license.
+- **Node `lts`:** a moving channel, not a pin. `cf` supports only even release lines (`^22.23.0 || ^24.22.0 || ^26.12.0`), which `latest` leaves when an odd release ships.
 - **`cf` beta:** mise's `latest` skips prereleases and gives 0.15.0. Use `latest` from 1.0.0.
 
 ## Tools
