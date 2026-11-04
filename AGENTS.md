@@ -16,7 +16,7 @@ Agents lead development and decisions here: decide from evidence, record why in 
 - Tool files set global defaults; projects pin their own versions.
 - Track latest. Pin only for a reason in [Decisions](docs/decisions.md#pinned-versions).
 - Never uninstall, change system settings or reboot automatically.
-- Keep credentials and personal agent settings out of this repository.
+- Keep credentials and personal agent settings out of this repository, except the created-once `~/.claude/settings.json`.
 
 ## Rules
 
