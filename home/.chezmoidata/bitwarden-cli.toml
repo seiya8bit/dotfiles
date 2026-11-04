@@ -1,0 +1,2 @@
+[tools.bitwarden-cli]
+winget = "Bitwarden.CLI"

@@ -20,7 +20,7 @@ Windows 11 x64 dotfiles. Agents: start at [AGENTS.md](AGENTS.md).
    ```
 
 4. Restart terminals and agent apps. `chezmoi verify` must exit 0 and `mise ls --missing` must print nothing.
-5. **Person:** select `JetBrainsMono NFM` in Windows Terminal, enable Docker Desktop's WSL 2 engine, and sign in: `gh auth login`, `claude`, `cf auth login`, `supabase login`, desktop apps.
+5. **Person:** select `JetBrainsMono NFM` in Windows Terminal, enable Docker Desktop's WSL 2 engine, install the XPPenTablet driver from XP-Pen's site, enable Bitwarden's SSH agent, disable the `ssh-agent` Windows service, and sign in: `gh auth login`, `claude`, `cf auth login`, `supabase login`, desktop apps.
 
 ## Tasks
 
@@ -38,6 +38,7 @@ A tool needs `winget` or `mise`.
 | Setting | Effect |
 |---|---|
 | `winget` | WinGet package identifier |
+| `source` | `msstore` for Store packages (default `winget`) |
 | `version` | Installs and pins this WinGet version |
 | `override` | Installer arguments |
 | `mise` | mise version of the tool named like the file |

@@ -1,0 +1,2 @@
+[tools.windows-terminal]
+winget = "Microsoft.WindowsTerminal"
