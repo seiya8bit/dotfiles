@@ -33,7 +33,7 @@ Keep entries current; delete those that no longer constrain anything. Counts are
 - **Godot:** through mise rather than WinGet, so projects can pin versions in `mise.toml`.
 - **Wrangler:** not installed; Cloudflare is moving to `cf`.
 - **`eza`:** `ls` is the most used human command, at 511 of 2,317 PowerShell history lines, so it stays for people.
-- **`bat`, `delta`, `fzf`:** rejected. `cat` 10, `git diff` 1 and `fzf` 0 lines in the same history.
+- **`bat`, `delta`, `fzf`:** rejected. `cat` 10, `git diff` 1 and `fzf` 0 lines in the same history; all 45 `git log` lines use `--oneline`, which shows no diffs.
 - **LINE:** from the Store, the only package source.
 - **AMD Software, XPPenTablet:** Person steps. WinGet has only AMD's cloud edition and nothing from XP-Pen.
 - **`jq`:** rejected. 3 runs, and native `jq.exe` writes CRLF in Git Bash.
