@@ -14,6 +14,7 @@ Keep entries current; delete those that no longer constrain anything. Counts are
 - **Bitwarden SSH agent:** keys stay in Bitwarden. Git uses Windows OpenSSH because Git for Windows' ssh cannot read the agent's named pipe. The `ssh-agent` service would compete for that pipe, and disabling it is a Person step because it is a system setting.
 - **No scheduled CI:** the test mocks WinGet and mise, so a schedule adds nothing.
 - **No Claude Code deny rules:** SSH keys stay in Bitwarden, `pip` has 0 runs and Windows has no `sudo`, leaving only `.env`. That does not justify managing the personal `~/.claude/settings.json`.
+- **Not managed:** `~/.ssh/config` (this repository is public and it names private hosts), VS Code settings (Settings Sync), Windows Terminal `settings.json` (Terminal rewrites it), and PowerToys, Start menu and taskbar state (per-machine or binary).
 - **Docs:** `AGENTS.md` loads every session, so it stays small. One decisions file needs no index, unlike per-file ADRs.
 
 ## Fonts
