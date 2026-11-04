@@ -4,11 +4,11 @@ Windows 11 x64 dotfiles, applied with chezmoi. Agents are the primary users.
 
 - [README](README.md): setup, tasks, settings, failures, verification.
 - [Decisions](docs/decisions.md): read the matching entry before changing what it covers.
-- `home/.chezmoidata/<tool>.toml`: one file per tool; the install script, profile, PATH and mise configuration are generated from them.
+- `home/.chezmoidata/<tool>.toml`: one file per tool; the install script, profile and mise configuration are generated from them.
 
 ## Policy
 
-Change only on the user's decision or new evidence, recommending one default and its tradeoffs.
+Agents lead development and decisions here: decide from evidence, record why in Decisions and report it. Ask the user only for personal data or what only a person can do. Change this section only on the user's decision or new evidence.
 
 - Preserve data and settings, then limit disruption, then stay low-maintenance. Stop on errors; don't repair.
 - Every process gets the same PATH and unmodified commands. Conveniences go in `human`.
