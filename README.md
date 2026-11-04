@@ -4,7 +4,7 @@ Windows 11 x64 dotfiles. Agents: start at [AGENTS.md](AGENTS.md).
 
 ## Setup
 
-1. **Person:** finish Windows Update, enable CPU virtualization, and for AMD GPUs run [AMD Auto-Detect](https://www.amd.com/en/resources/support-articles/faqs/GPU-131.html).
+1. **Person:** finish Windows Update, enable CPU virtualization, and for AMD GPUs run [AMD Auto-Detect](https://www.amd.com/en/resources/support-articles/faqs/GPU-131.html) (no Factory Reset).
 2. **Person:** in administrator PowerShell, then restart if asked:
 
    ```powershell
@@ -12,7 +12,7 @@ Windows 11 x64 dotfiles. Agents: start at [AGENTS.md](AGENTS.md).
    winget install Git.Git twpayne.chezmoi Microsoft.PowerShell --exact
    ```
 
-3. In PowerShell 7, not administrator, with the user's Git identity:
+3. In PowerShell 7, not administrator, with the user's Git identity (CSV-quote a value containing a comma):
 
    ```powershell
    Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
@@ -27,7 +27,7 @@ Windows 11 x64 dotfiles. Agents: start at [AGENTS.md](AGENTS.md).
 - **Add a tool:** create `home/.chezmoidata/<tool>.toml` with `[tools.<tool>]`. Check the ID with `winget show --id <id> --exact --source winget`. For mise, check `Backend` in `mise tool <name>`: the name can be another project.
 - **Remove a tool:** delete its file. The package stays installed.
 - **Upgrade:** agents run the body of `update` from the [profile](home/Documents/PowerShell/profile.ps1.tmpl), adding `--disable-interactivity` to WinGet.
-- **Bump cf:** set `mise` in [cf.toml](home/.chezmoidata/cf.toml) to `npm view cf dist-tags.latest`.
+- **Bump cf:** set `mise` in [cf.toml](home/.chezmoidata/cf.toml) to `npm view cf dist-tags.latest`, after checking `npm view cf engines` against the Node LTS.
 - **Change Git identity (Person):** `chezmoi init --prompt`.
 
 ## Tool settings

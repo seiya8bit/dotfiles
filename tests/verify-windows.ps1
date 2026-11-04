@@ -206,8 +206,7 @@ function mise {
     Assert ($LASTEXITCODE -ne 0) 'Documents guard accepted a redirected Documents folder.'
 
     # Agents act on the docs literally, so their links and settings must match the repository.
-    foreach ($document in 'AGENTS.md', 'README.md', 'docs/decisions.md') {
-        $document = Join-Path $repository $document
+    foreach ($document in (Get-ChildItem -LiteralPath $repository, (Join-Path $repository 'docs') -Filter *.md).FullName) {
         foreach ($link in [regex]::Matches([IO.File]::ReadAllText($document), '\]\((?!https?://)([^)#]*)(?:#([^)]*))?\)')) {
             $target = if ($link.Groups[1].Value) { Join-Path (Split-Path $document) $link.Groups[1].Value } else { $document }
             Assert (Test-Path -LiteralPath $target) "$document has a broken link: $($link.Value)."

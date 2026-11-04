@@ -12,7 +12,8 @@ Change only on the user's decision or new evidence, recommending one default and
 
 - Preserve data and settings, then limit disruption, then stay low-maintenance. Stop on errors; don't repair.
 - Every process gets the same PATH and unmodified commands. Conveniences go in `human`.
-- Install only through package managers: WinGet; mise for runtimes and CLIs without a WinGet package; rustup for Rust toolchains.
+- Install only through package managers, one per tool: WinGet; mise for runtimes and CLIs without a WinGet package; rustup for Rust toolchains.
+- Tool files set global defaults; projects pin their own versions.
 - Track latest. Pin only for a reason in [Decisions](docs/decisions.md#pinned-versions).
 - Never uninstall, change system settings or reboot automatically.
 - Keep credentials and personal agent settings out of this repository.

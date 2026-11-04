@@ -6,7 +6,7 @@ Keep entries current; delete those that no longer constrain anything. Counts are
 
 - **Windows only:** the user uses nothing else. `wsl` stays only as Docker Desktop's backend.
 - **chezmoi data files:** merging `.chezmoidata` gives one file per tool without a custom generator. Rejected: Nix (no native Windows support).
-- **One file per tool:** one rule for everything, at the cost of 32 package-only files. Rejected: `winget.json` plus config files, which splits a tool in two.
+- **One file per tool:** one rule for everything, at the cost of many package-only files. Rejected: `winget.json` plus config files, which splits a tool in two.
 - **One `winget install` per package:** `winget import` cannot pass Build Tools' installer arguments. Exit `-1978335135` means already installed, verified on real WinGet.
 - **Human setup is opt-in:** the profile needs a terminal and no agent variable. A missed setting costs a person; a leaked alias misleads every agent run. Rejected: human default with agent exclusions.
 - **No agent-only variables:** Claude Code sets `GIT_EDITOR=true` itself and no other agent is installed. Rejected: the same variable in the user environment, which agents started from a human shell lost and which disabled editors in other human shells. Revisit if another agent is installed.
