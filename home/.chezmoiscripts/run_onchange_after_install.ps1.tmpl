@@ -2,9 +2,9 @@
 $ErrorActionPreference = 'Stop'
 
 function Install-Package {
-    param([string]$Id, [string]$Source, [string]$Version, [string]$Override)
+    param([string]$Id, [string]$Version, [string]$Override)
 
-    $arguments = @('install', '--id', $Id, '--exact', '--source', $Source, '--no-upgrade')
+    $arguments = @('install', '--id', $Id, '--exact', '--source', 'winget', '--no-upgrade')
     if ($Version) { $arguments += '--version', $Version }
     if ($Override) { $arguments += '--override', $Override }
     winget.exe @arguments --accept-package-agreements --accept-source-agreements --disable-interactivity
@@ -23,7 +23,7 @@ function Install-Package {
     }
 }
 {{ range $name, $tool := .tools }}{{ with (index $tool "winget") }}
-Install-Package -Id '{{ . }}' -Source '{{ (index $tool "source") | default "winget" }}'
+Install-Package -Id '{{ . }}'
 {{- with (index $tool "version") }} -Version '{{ . }}'{{ end }}
 {{- with (index $tool "override") }} -Override '{{ . | replace "'" "''" }}'{{ end }}
 {{- end }}{{ end }}
