@@ -24,7 +24,7 @@ try {
     $destination = Join-Path $temporary.FullName 'home with spaces'
     $null = [IO.Directory]::CreateDirectory($checkout)
     $null = [IO.Directory]::CreateDirectory($destination)
-    foreach ($file in '.chezmoiroot', '.chezmoiversion', 'home') {
+    foreach ($file in '.chezmoiroot', 'home') {
         Copy-Item -LiteralPath (Join-Path $repository $file) -Destination $checkout -Recurse
     }
     $source = Join-Path $checkout 'home'
