@@ -26,4 +26,4 @@ Agents lead development and decisions here: decide from evidence, record why in 
 - Installer failures stop apply, a second apply changes nothing, and new behavior gets a test.
 - Run [Verification](README.md#verification). Report implementation, checks and hardware acceptance separately.
 - Docs: as short as possible, prompt-free commands, each fact once, only what you verified. Record non-obvious decisions and rejected options in Decisions.
-- Conventional Commits, one squash-merged PR per change. English code and docs; replies in the user's language.
+- Conventional Commits, one squash-merged PR per change. Review and merge your own PR once CI passes. English code and docs; replies in the user's language.
