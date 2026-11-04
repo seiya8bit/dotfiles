@@ -1,2 +1,3 @@
 [tools.claude-code]
 winget = "Anthropic.ClaudeCode"
+human = 'function yolo { claude --dangerously-skip-permissions @args }'
