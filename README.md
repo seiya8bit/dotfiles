@@ -28,6 +28,7 @@ Windows 11 x64 dotfiles. Agents: start at [AGENTS.md](AGENTS.md).
 - **Remove a tool:** delete its file. The package stays installed.
 - **Upgrade:** agents run the body of `update` from the [profile](home/Documents/PowerShell/profile.ps1.tmpl), adding `--disable-interactivity` to WinGet.
 - **Bump cf:** set `mise` in [cf.toml](home/.chezmoidata/cf.toml) to `npm view cf dist-tags.latest`, after checking `npm view cf engines` against the Node LTS.
+- **New Godot project:** in an empty folder, run `mise use godot@<version>-stable`, write `project.godot` with `config_version=5` and `[application]` `config/name="<name>"`, then run `godot_v<version>-stable_win64_console --headless --path . --import`. The `godot` shim is a GUI build that returns before importing finishes.
 - **Change Git identity (Person):** `chezmoi init --prompt`.
 
 ## Tool settings

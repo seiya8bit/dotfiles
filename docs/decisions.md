@@ -15,6 +15,11 @@ Keep entries current; delete those that no longer constrain anything. Counts are
 - **No scheduled CI:** the test mocks WinGet and mise, so a schedule adds nothing.
 - **Docs:** `AGENTS.md` loads every session, so it stays small. One decisions file needs no index, unlike per-file ADRs.
 
+## Fonts
+
+- **Japanese:** BIZ UDGothic.
+- **Everything else:** JetBrainsMono Nerd Font, listed by Windows as `JetBrainsMono NF`.
+
 ## Pinned versions
 
 - **CLIP STUDIO PAINT 5.0.4:** perpetual license.
@@ -24,6 +29,7 @@ Keep entries current; delete those that no longer constrain anything. Counts are
 
 - **`python`, `pnpm`:** 1,289 and 483 runs, so global through mise.
 - **`cf`, Supabase CLI:** requested by the user. Supabase has no WinGet package and refuses global npm. Rejected: Scoop, a second package manager.
+- **Godot:** no tool file; each project pins its version in `mise.toml`.
 - **Wrangler:** not installed; Cloudflare is moving to `cf`.
 - **`jq`:** rejected. 3 runs, and native `jq.exe` writes CRLF in Git Bash.
 - **`rg`, `fd`, `yq`:** rejected. 3, 1 and 0 runs.
