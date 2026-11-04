@@ -154,6 +154,14 @@ function mise {
     & git -C $repositoryCheck -c "core.excludesFile=$(Join-Path $destination '.config/git/ignore')" check-ignore --quiet --no-index 'app/.claude/settings.local.json'
     Assert ($LASTEXITCODE -eq 0) 'Global Git ignores do not cover Claude Code local settings.'
     Assert ([IO.File]::ReadAllText((Join-Path $destination '.wslconfig')).Contains('sparseVhd=true')) 'New WSL disks are not sparse.'
+
+    # Claude Code writes to its settings, so they are created once and never replaced.
+    $claudeSettings = Join-Path $destination '.claude/settings.json'
+    Assert ((Get-Content -LiteralPath $claudeSettings -Raw | ConvertFrom-Json).language -ceq 'japanese') 'Claude Code settings were not created.'
+    [IO.File]::WriteAllText($claudeSettings, '{}')
+    & $chezmoi @options apply
+    Assert ($LASTEXITCODE -eq 0 -and [IO.File]::ReadAllText($claudeSettings) -ceq '{}') 'Claude Code settings were replaced.'
+
     [IO.File]::WriteAllText((Join-Path $destination '.gitconfig.local'), "[user]`n    name = Local User`n")
     Assert ((& git config --file $gitconfig --includes --get user.name) -ceq 'Local User') 'Local Git settings did not win.'
 
