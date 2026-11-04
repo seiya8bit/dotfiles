@@ -52,17 +52,16 @@ try {
         ConvertFrom-Json -AsHashtable
     Assert ($LASTEXITCODE -eq 0 -and $files.Count -eq $names.Count -and $files.Count -gt 0) 'Tool files could not be read.'
     $tools = @{}
+    $settingNames = 'winget', 'source', 'version', 'override', 'mise', 'mise_name', 'path', 'human', 'upgrade'
     foreach ($file in $files.GetEnumerator()) {
         $tool = $file.Key -replace '\.toml$'
         Assert ($file.Key -ceq "$tool.toml" -and $tool -cmatch '^[a-z0-9]+(-[a-z0-9]+)*$') "$($file.Key) is not a lowercase .toml name."
         Assert (($file.Value.Keys -join ',') -ceq 'tools' -and ($file.Value.tools.Keys -join ',') -ceq $tool) "$($file.Key) must define only tools.$tool."
         $settings = $file.Value.tools[$tool]
         foreach ($setting in $settings.GetEnumerator()) {
-            $valid = switch -CaseSensitive ($setting.Key) {
-                { $_ -in 'winget', 'source', 'version', 'override', 'mise', 'mise_name', 'upgrade', 'human' } { $setting.Value -is [string] -and $setting.Value }
-                'path' { @($setting.Value | Where-Object { $_ -isnot [string] -or !$_ }).Count -eq 0 }
-                default { $false }
-            }
+            $valid = if ($setting.Key -cnotin $settingNames) { $false }
+                elseif ($setting.Key -ceq 'path') { @($setting.Value | Where-Object { $_ -isnot [string] -or !$_ }).Count -eq 0 }
+                else { $setting.Value -is [string] -and $setting.Value }
             Assert $valid "$($file.Key) has an unknown or malformed setting: $($setting.Key)."
         }
         Assert ($settings.Contains('winget') -or $settings.Contains('mise')) "$($file.Key) installs nothing."
@@ -145,7 +144,11 @@ function mise {
     Assert ($LASTEXITCODE -eq 0) 'Apply after removing test tools failed.'
 
     $mise = [IO.File]::ReadAllText((Join-Path $destination '.config/mise/config.toml'))
-    Assert ($mise -ceq "[tools]`n`"npm:cf`" = `"1.0.0-beta.27`"`n`"node`" = `"lts`"`n`"pnpm`" = `"latest`"`n`"python`" = `"latest`"`n`"supabase`" = `"latest`"`n") "mise configuration is wrong: $mise"
+    $entries = foreach ($tool in $names | Where-Object { $tools[$_].Contains('mise') }) {
+        "`"$($tools[$tool]['mise_name'] ?? $tool)`" = `"$($tools[$tool].mise)`""
+    }
+    Assert ($mise -ceq "[tools]`n$($entries -join "`n")`n") "mise configuration is wrong: $mise"
+    Assert ($mise.Contains('"npm:cf" = ') -and !$mise.Contains('"cf" = ')) 'cf resolves to the Cloud Foundry CLI.'
     Assert ((& git config --file $gitconfig --get user.name) -ceq $name) 'Git name was not quoted correctly.'
     [IO.File]::WriteAllText((Join-Path $destination '.gitconfig.local'), "[user]`n    name = Local User`n")
     Assert ((& git config --file $gitconfig --includes --get user.name) -ceq 'Local User') 'Local Git settings did not win.'
@@ -202,9 +205,27 @@ function mise {
     $null = & pwsh -NoProfile -File $guard 2>&1
     Assert ($LASTEXITCODE -ne 0) 'Documents guard accepted a redirected Documents folder.'
 
+    # Agents act on the docs literally, so their links and settings must match the repository.
+    foreach ($document in 'AGENTS.md', 'README.md', 'docs/decisions.md') {
+        $document = Join-Path $repository $document
+        foreach ($link in [regex]::Matches([IO.File]::ReadAllText($document), '\]\((?!https?://)([^)#]*)(?:#([^)]*))?\)')) {
+            $target = if ($link.Groups[1].Value) { Join-Path (Split-Path $document) $link.Groups[1].Value } else { $document }
+            Assert (Test-Path -LiteralPath $target) "$document has a broken link: $($link.Value)."
+            if ($link.Groups[2].Success) {
+                $anchors = [regex]::Matches([IO.File]::ReadAllText($target), '(?m)^#+ (.+)$') |
+                    ForEach-Object { $_.Groups[1].Value.ToLowerInvariant() -replace '[^a-z0-9 -]' -replace ' ', '-' }
+                Assert ($anchors -ccontains $link.Groups[2].Value) "$document has a broken anchor: $($link.Value)."
+            }
+        }
+    }
+    $readme = [IO.File]::ReadAllText((Join-Path $repository 'README.md'))
+    $documented = [regex]::Matches([regex]::Match($readme, '(?ms)^## Tool settings$.*?^## ').Value, '(?m)^\| `([a-z_]+)` \|') |
+        ForEach-Object { $_.Groups[1].Value }
+    Assert (($documented -join ',') -ceq ($settingNames -join ',')) "README's tool settings differ from the test: $($documented -join ',')."
+
     & $chezmoi @options verify
     Assert ($LASTEXITCODE -eq 0) 'Target verification failed.'
-    Write-Output 'Windows: identity, tool files, installs, reruns, mise, profile, environment, Documents guard and Git configuration passed.'
+    Write-Output 'Windows: identity, tool files, installs, reruns, mise, profile, environment, Documents guard, docs and Git configuration passed.'
 } finally {
     $temporary.Delete($true)
 }
