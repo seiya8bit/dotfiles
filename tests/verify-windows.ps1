@@ -61,7 +61,6 @@ try {
             $valid = switch -CaseSensitive ($setting.Key) {
                 { $_ -in 'winget', 'source', 'version', 'override', 'mise', 'mise_name', 'upgrade', 'human' } { $setting.Value -is [string] -and $setting.Value }
                 'path' { @($setting.Value | Where-Object { $_ -isnot [string] -or !$_ }).Count -eq 0 }
-                'ai' { $setting.Value -is [Collections.IDictionary] -and @($setting.Value.Values | Where-Object { $_ -isnot [string] }).Count -eq 0 }
                 default { $false }
             }
             Assert $valid "$($file.Key) has an unknown or malformed setting: $($setting.Key)."
@@ -146,12 +145,12 @@ function mise {
     Assert ($LASTEXITCODE -eq 0) 'Apply after removing test tools failed.'
 
     $mise = [IO.File]::ReadAllText((Join-Path $destination '.config/mise/config.toml'))
-    Assert ($mise -ceq "[tools]`n`"npm:cf`" = `"latest`"`n`"node`" = `"lts`"`n`"pnpm`" = `"latest`"`n`"python`" = `"latest`"`n`"supabase`" = `"latest`"`n") "mise configuration is wrong: $mise"
+    Assert ($mise -ceq "[tools]`n`"npm:cf`" = `"1.0.0-beta.27`"`n`"node`" = `"lts`"`n`"pnpm`" = `"latest`"`n`"python`" = `"latest`"`n`"supabase`" = `"latest`"`n") "mise configuration is wrong: $mise"
     Assert ((& git config --file $gitconfig --get user.name) -ceq $name) 'Git name was not quoted correctly.'
     [IO.File]::WriteAllText((Join-Path $destination '.gitconfig.local'), "[user]`n    name = Local User`n")
     Assert ((& git config --file $gitconfig --includes --get user.name) -ceq 'Local User') 'Local Git settings did not win.'
 
-    # Agents get nothing from the profile; people get their setup, with agent-only variables removed.
+    # Agents get nothing from the profile; people get their setup.
     $agent = & pwsh -NoProfile -Command ". '$($profile.Replace("'", "''"))'; [bool](Get-Command update -ErrorAction Ignore)"
     Assert ($LASTEXITCODE -eq 0 -and $agent -ceq 'False') 'The profile set up an agent shell.'
     $statements = [Management.Automation.Language.Parser]::ParseFile($profile, [ref]$null, [ref]$null).EndBlock.Statements
@@ -160,17 +159,10 @@ function mise {
         $script:ShellInit = [Collections.Generic.List[string]]::new()
         function starship { '$script:ShellInit.Add("starship")' }
         function zoxide { '$script:ShellInit.Add("zoxide")' }
-        $previous = $env:GIT_EDITOR
-        try {
-            $env:GIT_EDITOR = 'true'
-            . ([scriptblock]::Create((@($statements | Select-Object -Skip 1).Extent.Text -join "`n")))
-            Assert ($null -eq $env:GIT_EDITOR) 'The profile kept an agent-only variable.'
-            Assert (($script:ShellInit -join ',') -ceq 'starship,zoxide') 'Shell initialization failed.'
-            $update = (Get-Command update -CommandType Function).Definition
-            Assert ($update.Contains('mise upgrade') -and $update.Contains('rustup update')) 'update misses tool upgrades.'
-        } finally {
-            $env:GIT_EDITOR = $previous
-        }
+        . ([scriptblock]::Create((@($statements | Select-Object -Skip 1).Extent.Text -join "`n")))
+        Assert (($script:ShellInit -join ',') -ceq 'starship,zoxide') 'Shell initialization failed.'
+        $update = (Get-Command update -CommandType Function).Definition
+        Assert ($update.Contains('mise upgrade') -and $update.Contains('rustup update')) 'update misses tool upgrades.'
     }
 
     # The environment script touches the real user environment, so only a disposable CI runner runs it.
@@ -184,16 +176,13 @@ function mise {
         $key = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey('Environment')
         try {
             $original = "$($key.GetValue('Path', '', 'DoNotExpandEnvironmentNames'))"
-            # An earlier apply declared a variable and a PATH entry that the tools no longer do.
-            $key.SetValue('DOTFILES_STALE', '1')
-            $key.SetValue('DOTFILES_VARIABLES', 'DOTFILES_STALE')
+            # An earlier apply declared a PATH entry that the tools no longer do.
             $key.SetValue('DOTFILES_PATH', 'C:\dotfiles-stale')
             $key.SetValue('Path', "C:\dotfiles-stale;$original;$env:LOCALAPPDATA\mise\shims", 'ExpandString')
             foreach ($run in 1, 2) {
                 & pwsh -NoProfile -File $environmentScript
                 Assert ($LASTEXITCODE -eq 0) 'Environment script failed.'
             }
-            Assert ($key.GetValue('GIT_EDITOR') -ceq 'true' -and $null -eq $key.GetValue('DOTFILES_STALE')) 'User variables are wrong.'
             Assert ($key.GetValueKind('Path') -eq 'ExpandString' -and
                 $key.GetValue('Path', '', 'DoNotExpandEnvironmentNames') -ceq ((@('%LOCALAPPDATA%\mise\shims') + ($original -split ';' -ne '')) -join ';')) 'User PATH is wrong.'
         } finally {

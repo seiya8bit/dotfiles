@@ -3,9 +3,6 @@ if ([Console]::IsInputRedirected -or [Console]::IsOutputRedirected -or
     "$env:CLAUDECODE$env:CODEX_SANDBOX$env:GEMINI_CLI$env:CURSOR_AGENT$env:AI_AGENT") {
     return
 }
-{{ range $name, $tool := .tools }}{{ range $variable, $_ := (index $tool "ai") }}
-Remove-Item Env:{{ $variable }} -ErrorAction Ignore
-{{- end }}{{ end }}
 {{- range $name, $tool := .tools }}{{ with (index $tool "human") }}
 
 # {{ $name }}

@@ -1,4 +1,4 @@
-# mise's own `cf` is the Cloud Foundry CLI.
+# mise's own `cf` is the Cloud Foundry CLI, and its `latest` skips this beta for 0.15.0.
 [tools.cf]
-mise = "latest"
+mise = "1.0.0-beta.27"
 mise_name = "npm:cf"
