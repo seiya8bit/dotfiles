@@ -1,20 +1,16 @@
 # Agents start PowerShell too, so only a person at a terminal gets past this point.
-if ([Console]::IsInputRedirected -or [Console]::IsOutputRedirected -or
-    "$env:CLAUDECODE$env:CODEX_SANDBOX$env:GEMINI_CLI$env:CURSOR_AGENT$env:AI_AGENT") {
+if ([Console]::IsInputRedirected -or [Console]::IsOutputRedirected -or $env:CLAUDECODE) {
     return
 }
-{{- range $name, $tool := .tools }}{{ with (index $tool "human") }}
-
-# {{ $name }}
+{{- range $tool := .tools }}{{ with (index $tool "human") }}
 {{ . | trim }}
 {{- end }}{{ end }}
 
-# Upgrade dotfiles, unpinned WinGet packages and tools that update themselves.
 function update {
     chezmoi update
     if ($LASTEXITCODE -eq 0) {
         winget upgrade --all --accept-package-agreements --accept-source-agreements
-{{- range $name, $tool := .tools }}{{ with (index $tool "upgrade") }}
+{{- range $tool := .tools }}{{ with (index $tool "upgrade") }}
         {{ . }}
 {{- end }}{{ end }}
     }

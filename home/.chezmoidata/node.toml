@@ -1,3 +1,2 @@
-# Global default; projects pin their own.
 [tools.node]
 mise = "lts"
