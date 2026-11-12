@@ -20,8 +20,8 @@ Agents lead development and decisions here: decide from evidence, report each de
 
 ## Rules
 
-- Edit sources in `home/`; never touch the host-specific `$PROFILE`.
-- Apply to a real home only when the user asks, after reading `chezmoi diff`: symlinks at managed paths get replaced, and a host-specific `$PROFILE` still runs after `profile.ps1`.
+- Edit sources in `home/`.
+- Apply to a real home only when the user asks, after reading `chezmoi diff`.
 - Delete before adding; add nothing without a current need.
 - Installer failures stop apply, a second apply changes nothing, and new behavior gets a test.
 - Run [Verification](README.md#verification). Report implementation, checks and hardware acceptance separately.
