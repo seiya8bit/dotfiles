@@ -1,4 +1,4 @@
 # mise's own `cf` is the Cloud Foundry CLI.
 [tools.cf]
-mise = "1.0.0-beta.27"
+mise = "1.0.0-beta.30"
 mise_name = "npm:cf"
