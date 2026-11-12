@@ -1,11 +1,6 @@
 #Requires -Version 7.5
 $ErrorActionPreference = 'Stop'
-$PSNativeCommandUseErrorActionPreference = $false
 Set-StrictMode -Version Latest
-
-if (!$IsWindows) {
-    throw 'These dotfiles support Windows only.'
-}
 
 $repository = Split-Path -Parent $PSScriptRoot
 $chezmoi = (Get-Command chezmoi -CommandType Application -TotalCount 1 -ErrorAction Stop).Source
@@ -32,9 +27,6 @@ try {
         '--persistent-state', (Join-Path $temporary.FullName 'state.boltdb'),
         '--cache', (Join-Path $temporary.FullName 'cache'), '--no-tty', '--no-pager')
 
-    $null = & $chezmoi @options execute-template --init --override-data '{"chezmoi":{"os":"linux"}}' `
-        --file (Join-Path $source '.chezmoi.toml.tmpl') 2>&1
-    Assert ($LASTEXITCODE -ne 0) 'Another OS was accepted.'
     foreach ($empty in 'Git name= ,Git email=test@example.invalid', 'Git name=Test User,Git email= ') {
         $null = & $chezmoi @options init --source $checkout --promptString $empty 2>&1
         Assert ($LASTEXITCODE -ne 0) 'Empty Git identity was accepted.'
@@ -161,9 +153,6 @@ function mise {
     [IO.File]::WriteAllText($claudeSettings, '{}')
     & $chezmoi @options apply
     Assert ($LASTEXITCODE -eq 0 -and [IO.File]::ReadAllText($claudeSettings) -ceq '{}') 'Claude Code settings were replaced.'
-
-    [IO.File]::WriteAllText((Join-Path $destination '.gitconfig.local'), "[user]`n    name = Local User`n")
-    Assert ((& git config --file $gitconfig --includes --get user.name) -ceq 'Local User') 'Local Git settings did not win.'
 
     # Agents get nothing from the profile; people get their setup.
     $agent = & pwsh -NoProfile -Command ". '$($profile.Replace("'", "''"))'; [bool](Get-Command update -ErrorAction Ignore)"

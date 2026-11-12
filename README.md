@@ -12,7 +12,7 @@ Windows 11 x64 dotfiles. Agents: start at [AGENTS.md](AGENTS.md).
    winget install Git.Git twpayne.chezmoi Microsoft.PowerShell --exact
    ```
 
-3. In PowerShell 7, not administrator, with the user's Git identity (CSV-quote a value containing a comma):
+3. In PowerShell 7, not administrator, with the user's Git identity:
 
    ```powershell
    chezmoi init --apply --promptString "Git name=<name>,Git email=<email>" https://github.com/seiya8bit/dotfiles
@@ -29,8 +29,6 @@ Windows 11 x64 dotfiles. Agents: start at [AGENTS.md](AGENTS.md).
 - **Remove a tool:** delete its file. The package stays installed.
 - **Upgrade:** agents run the body of `update` from the [profile](home/Documents/PowerShell/profile.ps1.tmpl), adding `--disable-interactivity` to WinGet.
 - **Bump cf:** set `mise` in [cf.toml](home/.chezmoidata/cf.toml) to `npm view cf dist-tags.latest`, after checking `npm view cf engines` against the Node LTS.
-- **New Godot project:** in an empty folder, run `mise use godot@<version>-stable`, write `project.godot` with `config_version=5` and `[application]` `config/name="<name>"`, then run `godot_v<version>-stable_win64_console --headless --path . --import`. Ignore `.godot/` in Git. The `godot` shim is a GUI build that returns before importing finishes.
-- **Change Git identity (Person):** `chezmoi init --prompt`.
 
 ## Tool settings
 
@@ -64,9 +62,4 @@ git diff --check
 ./tests/verify-windows.ps1
 ```
 
-`chezmoi` must be a real binary, not a shim without a version. The test must end with `... passed.`. It mocks WinGet and mise; only CI runs the environment script. Renaming the required `windows` CI job means changing the ruleset.
-
-**Not covered: real WinGet installs and a full apply on a fresh machine.** Record acceptance here:
-
-| Date | OS / architecture | Result |
-|---|---|---|
+The test mocks WinGet and mise, so only a real apply checks installs. Renaming the required `windows` CI job means changing the ruleset.

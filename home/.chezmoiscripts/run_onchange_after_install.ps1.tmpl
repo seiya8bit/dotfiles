@@ -1,4 +1,3 @@
-#Requires -Version 7.5
 $ErrorActionPreference = 'Stop'
 
 function Install-Package {
@@ -22,7 +21,7 @@ function Install-Package {
         }
     }
 }
-{{ range $name, $tool := .tools }}{{ with (index $tool "winget") }}
+{{ range $tool := .tools }}{{ with (index $tool "winget") }}
 Install-Package -Id '{{ . }}' -Source '{{ (index $tool "source") | default "winget" }}'
 {{- with (index $tool "version") }} -Version '{{ . }}'{{ end }}
 {{- with (index $tool "override") }} -Override '{{ . | replace "'" "''" }}'{{ end }}

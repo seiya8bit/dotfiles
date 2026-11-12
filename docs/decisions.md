@@ -4,26 +4,14 @@ Keep entries current; delete those that no longer constrain anything. Counts are
 
 ## Design
 
-- **Windows only:** the user uses nothing else. WSL comes from a setup step, only as Docker Desktop's backend.
-- **chezmoi data files:** merging `.chezmoidata` gives one file per tool without a custom generator. Rejected: Nix (no native Windows support).
-- **One file per tool:** one rule for everything, at the cost of many package-only files. Rejected: `winget.json` plus config files, which splits a tool in two.
+- **One file per tool:** `.chezmoidata` merges them without a custom generator, so one rule covers every tool, at the cost of many package-only files.
 - **One `winget install` per package:** `winget import` cannot pass Build Tools' installer arguments. Exit `-1978335135` means already installed, verified on real WinGet.
-- **Human setup is opt-in:** the profile needs a terminal and no agent variable. A missed setting costs a person; a leaked alias misleads every agent run. Rejected: human default with agent exclusions.
-- **No agent-only variables:** Claude Code sets `GIT_EDITOR=true` itself and no other agent is installed. Rejected: the same variable in the user environment, which agents started from a human shell lost and which disabled editors in other human shells. Revisit if another agent is installed.
-- **mise shims on PATH:** agent shells skip profiles, so `mise activate` would not reach them. Cost: `mise.toml` `[env]` does not load. PATH is read unexpanded to keep `%VARIABLE%`, and only this entry is managed, so it stays if mise goes.
+- **Human setup is opt-in:** a missed setting costs a person; a leaked alias misleads every agent run.
+- **mise shims on PATH:** agent shells skip profiles, so `mise activate` would not reach them. Cost: `mise.toml` `[env]` does not load. Only this entry is managed, so it stays if mise goes.
 - **Bitwarden SSH agent:** keys stay in Bitwarden. Git uses Windows OpenSSH because Git for Windows' ssh cannot read the agent's named pipe. The `ssh-agent` service would compete for that pipe, and disabling it is a Person step because it is a system setting.
 - **`.wslconfig`:** `sparseVhd` applies only to new disks, so it must exist before Docker Desktop's first start.
-- **No scheduled CI:** the test mocks WinGet and mise, so a schedule adds nothing.
-- **No Claude Code deny rules:** SSH keys stay in Bitwarden, `pip` has 0 runs and Windows has no `sudo`, leaving only `.env`, which does not justify them.
-- **`~/.claude/settings.json`:** the user chose to manage it, for clean installs. It is created only when absent: Claude Code writes to this file, so a managed copy would revert its changes. It holds only what shapes every session: `language` and `autoMemoryEnabled`. Rejected: plugins and marketplaces (would enable third-party code on a new machine without a look), `skipDangerousModePermissionPrompt` (a person accepts that once), model and effort keys (name models that go stale), hooks (personal paths), and theme, renderer and notification preferences (one `/config` away).
-- **No execution policy step:** PowerShell 7 ships `RemoteSigned` in `$PSHOME`, and this machine's `CurrentUser` scope is undefined, so setup does not change a setting.
-- **Not managed:** `~/.ssh/config` (this repository is public and it names private hosts), VS Code settings (Settings Sync), Windows Terminal `settings.json` (Terminal rewrites it), and PowerToys, Start menu and taskbar state (per-machine or binary).
-- **Docs:** `AGENTS.md` loads every session, so it stays small. One decisions file needs no index, unlike per-file ADRs. Rejected: "as short as possible" as the docs rule, because shortening in #39 lost rules that had to be restored.
-
-## Fonts
-
-- **Japanese:** BIZ UDGothic.
-- **Everything else:** JetBrainsMono Nerd Font, from the `jetbrains-mono-nerd-font` tool. Terminals use its fixed-width family, `JetBrainsMono NFM`.
+- **`~/.claude/settings.json`:** the user chose to manage it, for clean installs. It is created only when absent: Claude Code writes to this file, so a managed copy would revert its changes. It holds only what shapes every session.
+- **Docs:** `AGENTS.md` loads every session, so it stays small.
 
 ## Pinned versions
 
@@ -34,14 +22,7 @@ Keep entries current; delete those that no longer constrain anything. Counts are
 ## Tools
 
 - **`python`, `pnpm`:** 1,289 and 483 runs, so global through mise.
-- **`cf`, Supabase CLI:** requested by the user. Supabase has no WinGet package and refuses global npm. Rejected: Scoop, a second package manager.
+- **`cf`, Supabase CLI:** requested by the user. Supabase has no WinGet package and refuses global npm.
 - **Godot:** through mise rather than WinGet, so projects can pin versions in `mise.toml`.
-- **Wrangler:** not installed; Cloudflare is moving to `cf`.
 - **`eza`:** `ls` is the most used human command, at 511 of 2,317 PowerShell history lines, so it stays for people.
-- **FFmpeg:** rejected. 2 agent runs and no human history lines.
-- **Starship:** rejected. It added about 1.2 s to every human shell start.
-- **`bat`, `delta`, `fzf`:** rejected. `cat` 10, `git diff` 1 and `fzf` 0 lines in the same history; all 45 `git log` lines use `--oneline`, which shows no diffs.
-- **LINE:** from the Store, the only package source.
 - **AMD Software, XPPenTablet:** Person steps. WinGet has only AMD's cloud edition and nothing from XP-Pen.
-- **`jq`:** rejected. 3 runs, and native `jq.exe` writes CRLF in Git Bash.
-- **`rg`, `fd`, `yq`:** rejected. 3, 1 and 0 runs.

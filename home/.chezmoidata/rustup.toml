@@ -1,4 +1,3 @@
-# Global default toolchain; projects pin theirs in rust-toolchain.toml.
 [tools.rustup]
 winget = "Rustlang.Rustup"
 upgrade = "rustup update"

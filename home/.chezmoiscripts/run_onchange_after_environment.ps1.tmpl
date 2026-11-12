@@ -1,7 +1,6 @@
 {{ if eq .chezmoi.destDir .chezmoi.homeDir -}}
 $ErrorActionPreference = 'Stop'
 
-# Agents start shells without a profile, so mise shims must be on the user PATH.
 $shims = '%LOCALAPPDATA%\mise\shims'
 $expanded = [Environment]::ExpandEnvironmentVariables($shims)
 
