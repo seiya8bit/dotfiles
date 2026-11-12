@@ -8,7 +8,7 @@ Keep entries current; delete those that no longer constrain anything. Counts are
 - **One `winget install` per package:** `winget import` cannot pass Build Tools' installer arguments. Exit `-1978335135` means already installed, verified on real WinGet.
 - **Human setup is opt-in:** a missed setting costs a person; a leaked alias misleads every agent run.
 - **mise shims on PATH:** agent shells skip profiles, so `mise activate` would not reach them. Cost: `mise.toml` `[env]` does not load. Only this entry is managed, so it stays if mise goes.
-- **Bitwarden SSH agent:** keys stay in Bitwarden. Git uses Windows OpenSSH because Git for Windows' ssh cannot read the agent's named pipe. The `ssh-agent` service would compete for that pipe, and disabling it is a Person step because it is a system setting.
+- **Bitwarden SSH agent:** keys stay in Bitwarden. Git uses Windows OpenSSH because Git for Windows' ssh cannot read the agent's named pipe. Windows' `ssh-agent` service, disabled by default, would take that pipe, so it stays off.
 - **`.wslconfig`:** `sparseVhd` applies only to new disks, so it must exist before Docker Desktop's first start.
 - **`~/.claude/settings.json`:** the user chose to manage it, for clean installs. It is created only when absent: Claude Code writes to this file, so a managed copy would revert its changes. It holds only what shapes every session.
 - **Docs:** `AGENTS.md` loads every session, so it stays small.
