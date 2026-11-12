@@ -45,3 +45,4 @@ Keep entries current; delete those that no longer constrain anything. Counts are
 - **AMD Software, XPPenTablet:** Person steps. WinGet has only AMD's cloud edition and nothing from XP-Pen.
 - **`jq`:** rejected. 3 runs, and native `jq.exe` writes CRLF in Git Bash.
 - **`rg`, `fd`, `yq`:** rejected. 3, 1 and 0 runs.
+- **herdr, Codex, Zed:** rejected by the user, though PowerShell history had 83, 59 and 32 lines on 2026-11-12.
