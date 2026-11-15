@@ -1,18 +1,18 @@
 # Decisions
 
-Keep entries current; delete those that no longer constrain anything. Counts are from agent transcripts and PowerShell history on this machine, as of 2026-11-04.
+Keep entries current; delete those that no longer constrain anything. Counts are from the user's agent transcripts and PowerShell history as of 2026-11-04.
 
 ## Design
 
 - **One file per tool:** `.chezmoidata` merges them without a custom generator, so one rule covers every tool, at the cost of many package-only files.
 - **One `winget install` per package:** `winget import` cannot pass Build Tools' installer arguments. Exit `-1978335135` means already installed, verified on real WinGet.
 - **Human setup is opt-in:** a missed setting costs a person; a leaked alias misleads every agent run.
-- **mise shims on PATH:** agent shells skip profiles, so `mise activate` would not reach them. Cost: `mise.toml` `[env]` does not load. Only this entry is managed, so it stays if mise goes.
+- **mise shims on PATH:** agent shells skip profiles, so `mise activate` would not reach them. Cost: `mise.toml` `[env]` does not load. The environment script changes only this `PATH` entry, which stays if mise is removed.
 - **Bitwarden SSH agent:** keys stay in Bitwarden. Git uses Windows OpenSSH because Git for Windows' ssh cannot read the agent's named pipe. Windows' `ssh-agent` service, disabled by default, would take that pipe, so it stays off. Agents cannot answer SSH's host key prompt, so a person accepts GitHub's key once. `gh` logs in with the SSH protocol because with HTTPS it writes a credential helper into the managed `~/.gitconfig`, and the next apply stops on that change.
 - **`.wslconfig`:** `sparseVhd` applies only to new disks, so it must exist before Docker Desktop's first start.
 - **`~/.claude/settings.json`:** the user chose to manage it, for clean installs. It is created only when absent: Claude Code writes to this file, so a managed copy would revert its changes. It holds only what shapes every session.
 - **Docs:** agent instructions load every session, so they stay small.
-- **Rulesync:** generated files are committed, as Rulesync recommends, because a fresh clone, CI and GitHub need them. So `.gitignore` lists only per-person files, not `rulesync gitignore`'s output, which ignores generated files. The `claudecode` target writes `CLAUDE.md`; the `agentsmd` target would prepend an empty heading to `AGENTS.md`.
+- **Rulesync:** generated files are committed, as in Rulesync's FAQ, because a fresh clone, CI and GitHub need them. `rulesync gitignore` would ignore them, so `.gitignore` lists only per-person files. The `claudecode` target writes `CLAUDE.md`; the `agentsmd` target would prepend an empty heading to `AGENTS.md`.
 
 ## Pinned versions
 
