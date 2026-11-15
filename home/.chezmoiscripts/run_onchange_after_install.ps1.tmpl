@@ -26,7 +26,6 @@ Install-Package -Id '{{ . }}' -Source '{{ (index $tool "source") | default "wing
 {{- with (index $tool "version") }} -Version '{{ . }}'{{ end }}
 {{- with (index $tool "override") }} -Override '{{ . | replace "'" "''" }}'{{ end }}
 {{- end }}{{ end }}
-{{- if hasKey .tools "mise" }}
 
 # mise configuration: {{ includeTemplate "dot_config/mise/config.toml.tmpl" . | sha256sum }}
 # WinGet adds mise to PATH for new processes only.
@@ -35,4 +34,3 @@ mise install
 if ($LASTEXITCODE -ne 0) {
     throw "mise install failed (exit $LASTEXITCODE)."
 }
-{{- end }}
