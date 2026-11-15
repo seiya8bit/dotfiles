@@ -32,7 +32,6 @@ Windows 11 x64 dotfiles. Agents: start at [CLAUDE.md](CLAUDE.md).
 - **Add a tool:** create `home/.chezmoidata/<tool>.toml` with `[tools.<tool>]`. Check the ID with `winget show --id <id> --exact --source winget`. For mise, check `Backend` in `mise tool <name>`: the name can be another project.
 - **Remove a tool:** delete its file. The package stays installed.
 - **Upgrade:** agents run `chezmoi update --apply=false`, read `chezmoi diff`, run `chezmoi apply`, then the rest of `update` from the [profile](home/Documents/PowerShell/profile.ps1.tmpl), adding `--disable-interactivity` to WinGet.
-- **Bump cf:** set `mise` in [cf.toml](home/.chezmoidata/cf.toml) to `npm view cf dist-tags.latest`, after checking `npm view cf engines` against the Node LTS.
 - **Update humanizer:** run `curl.exe -fsSL https://raw.githubusercontent.com/blader/humanizer/main/SKILL.md -o .rulesync/skills/humanizer/SKILL.md`, then `rulesync generate`.
 
 ## Tool settings
