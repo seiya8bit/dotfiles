@@ -11,24 +11,13 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
-      - name: Install chezmoi
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          $directory = Join-Path $env:RUNNER_TEMP 'chezmoi'
-          gh release download --repo twpayne/chezmoi --dir $directory `
-            --pattern 'chezmoi-windows-amd64.exe' --pattern 'chezmoi_*_checksums.txt'
-          $hash = (Get-FileHash (Join-Path $directory 'chezmoi-windows-amd64.exe')).Hash
-          if (!((Get-Content (Get-Item "$directory/chezmoi_*_checksums.txt")) -match "^$hash  chezmoi-windows-amd64\.exe$")) {
-            throw 'chezmoi checksum mismatch.'
-          }
-          Rename-Item (Join-Path $directory 'chezmoi-windows-amd64.exe') 'chezmoi.exe'
-          $directory | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+      # Not in mise.toml: its shim would shadow WinGet's chezmoi outside this repository.
+      - uses: jdx/mise-action@v5
+        with:
+          tool_versions: chezmoi latest
       - name: Verify Windows
         shell: pwsh
         run: ./tests/verify-windows.ps1
-      - uses: jdx/mise-action@v5
       - name: Check agent files
         shell: pwsh
         run: rulesync generate --check
