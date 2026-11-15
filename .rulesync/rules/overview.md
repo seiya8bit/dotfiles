@@ -16,8 +16,7 @@ Agents lead development and decisions here: decide from evidence, report each de
 - Preserve data and settings, then limit disruption, then stay low-maintenance. Stop on errors; don't repair beyond [Failures](README.md#failures).
 - Every process gets the same PATH and unmodified commands. Conveniences go in `human`.
 - Install only through package managers, one per tool: WinGet; mise for runtimes, tools projects pin, and CLIs without a WinGet package; rustup for Rust toolchains.
-- Tool files set global defaults; projects pin their own versions.
-- Track latest. Pin only for a reason in [Decisions](docs/decisions.md#pinned-versions).
+- Tool files set global defaults and track latest; pin only for a reason in [Decisions](docs/decisions.md#pinned-versions). Projects pin their own versions.
 - Never uninstall, change system settings or reboot automatically.
 - Keep credentials and personal agent settings out of this repository, except the created-once `~/.claude/settings.json`.
 
