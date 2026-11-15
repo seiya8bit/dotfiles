@@ -1,0 +1,16 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", "schedule:weekly"],
+  "automerge": true,
+  "customManagers": [
+    {
+      "customType": "jsonata",
+      "fileFormat": "toml",
+      "managerFilePatterns": ["home/.chezmoidata/*.toml"],
+      "matchStrings": [
+        "tools.*[$substringBefore(mise_name, ':') = 'npm'].{ 'depName': $substringAfter(mise_name, ':'), 'currentValue': mise }"
+      ],
+      "datasourceTemplate": "npm"
+    }
+  ]
+}

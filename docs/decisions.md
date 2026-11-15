@@ -13,6 +13,7 @@ Keep entries current; delete those that no longer constrain anything. Counts are
 - **`~/.claude/settings.json`:** the user chose to manage it, for clean installs. It is created only when absent: Claude Code writes to this file, so a managed copy would revert its changes. It holds only what shapes every session.
 - **Docs:** agent instructions load every session, so they stay small.
 - **Rulesync:** generated files are committed, as in Rulesync's FAQ, because a fresh clone, CI and GitHub need them. `rulesync gitignore` would ignore them, so `.gitignore` lists only per-person files. The `claudecode` target writes `CLAUDE.md`; the `agentsmd` target would prepend an empty heading to `AGENTS.md`.
+- **Renovate:** Dependabot reads neither mise configuration nor tool files. Renovate's PRs merge themselves once CI passes. `mise.toml` pins Rulesync so that a release that changes the generated files fails only its own update PR.
 
 ## Pinned versions
 
