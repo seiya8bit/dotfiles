@@ -26,4 +26,5 @@ Keep entries current; delete those that no longer constrain anything. Counts are
 - **`cf`, Supabase CLI:** requested by the user. Supabase has no WinGet package and refuses global npm.
 - **Godot:** through mise rather than WinGet, so projects can pin versions in `mise.toml`.
 - **`eza`:** `ls` is the most used human command, at 511 of 2,317 PowerShell history lines, so it stays for people.
+- **humanizer:** requested by the user for the English docs. Its `SKILL.md` is copied into `.rulesync/skills/`, because Rulesync's `install` and `fetch` read only `skills/<name>/SKILL.md` and humanizer keeps `SKILL.md` at its repository root.
 - **AMD Software, XPPenTablet:** Person steps. WinGet has only AMD's cloud edition and nothing from XP-Pen.
