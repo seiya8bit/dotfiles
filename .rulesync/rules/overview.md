@@ -1,3 +1,6 @@
+---
+root: true
+---
 # Agent instructions
 
 Windows 11 x64 dotfiles, applied with chezmoi.
@@ -20,7 +23,7 @@ Agents lead development and decisions here: decide from evidence, report each de
 
 ## Rules
 
-- Edit sources in `home/`.
+- Edit sources: `home/` for the home; `.rulesync/` for agent files, then run `rulesync generate`.
 - Apply to a real home only when the user asks, after reading `chezmoi diff`.
 - Delete before adding; add nothing without a current need.
 - Installer failures stop apply, a second apply changes nothing, and new behavior gets a test.
