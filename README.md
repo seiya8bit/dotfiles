@@ -1,6 +1,6 @@
 # dotfiles
 
-Windows 11 x64 dotfiles. Agents: start at [AGENTS.md](AGENTS.md).
+Windows 11 x64 dotfiles. Agents: start at [CLAUDE.md](CLAUDE.md).
 
 ## Setup
 
@@ -63,6 +63,8 @@ A tool needs `winget` or `mise`.
 
 ```powershell
 git diff --check
+mise install
+rulesync generate --check
 ./tests/verify-windows.ps1
 ```
 

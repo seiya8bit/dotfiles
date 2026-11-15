@@ -28,3 +28,7 @@ jobs:
       - name: Verify Windows
         shell: pwsh
         run: ./tests/verify-windows.ps1
+      - uses: jdx/mise-action@v5
+      - name: Check agent files
+        shell: pwsh
+        run: rulesync generate --check
