@@ -4,7 +4,7 @@ Windows 11 x64 dotfiles. Agents: start at [CLAUDE.md](CLAUDE.md).
 
 ## Setup
 
-1. **Person:** finish Windows Update, enable CPU virtualization, and for AMD GPUs run [AMD Auto-Detect](https://www.amd.com/en/resources/support-articles/faqs/GPU-131.html) (no Factory Reset).
+1. **Person:** finish Windows Update, enable CPU virtualization, and for an AMD Radeon GPU or Ryzen CPU run [AMD Auto-Detect](https://www.amd.com/en/resources/support-articles/faqs/GPU-131.html), which installs graphics and chipset drivers (no Factory Reset).
 2. **Person:** in administrator PowerShell, then restart if asked:
 
    ```powershell
