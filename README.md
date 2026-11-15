@@ -9,7 +9,7 @@ Windows 11 x64 dotfiles. Agents: start at [AGENTS.md](AGENTS.md).
 
    ```powershell
    wsl --install --no-distribution --web-download
-   winget install Git.Git twpayne.chezmoi Microsoft.PowerShell --exact
+   winget install Git.Git twpayne.chezmoi Microsoft.PowerShell --exact --source winget
    ```
 
 3. In PowerShell 7, not administrator, with the user's Git identity:
@@ -21,7 +21,7 @@ Windows 11 x64 dotfiles. Agents: start at [AGENTS.md](AGENTS.md).
    A person must accept any UAC prompts while installers run.
 
 4. Restart terminals and agent apps. `chezmoi verify` must exit 0 and `mise ls --missing` must print nothing.
-5. **Person:** select `JetBrainsMono NFM` in Windows Terminal, enable Docker Desktop's WSL 2 engine, install the XPPenTablet driver from XP-Pen's site, enable Bitwarden's SSH agent, and sign in: `gh auth login`, `claude`, `cf auth login`, `supabase login`, desktop apps.
+5. **Person:** in Windows Terminal, make PowerShell 7 the default profile and select `JetBrainsMono NFM`; install the XPPenTablet driver from XP-Pen's site, enable Bitwarden's SSH agent, and sign in: `gh auth login`, `claude`, `cf auth login`, `supabase login`, desktop apps.
 
 ## Tasks
 
