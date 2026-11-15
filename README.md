@@ -21,7 +21,11 @@ Windows 11 x64 dotfiles. Agents: start at [AGENTS.md](AGENTS.md).
    A person must accept any UAC prompts while installers run.
 
 4. Restart terminals and agent apps. `chezmoi verify` must exit 0 and `mise ls --missing` must print nothing.
-5. **Person:** in Windows Terminal, make PowerShell 7 the default profile and select `JetBrainsMono NFM`; install the XPPenTablet driver from XP-Pen's site, enable Bitwarden's SSH agent, and sign in: `gh auth login`, `claude`, `cf auth login`, `supabase login`, desktop apps.
+5. **Person:**
+   - In Windows Terminal, make PowerShell 7 the default profile and select `JetBrainsMono NFM`.
+   - Install the XPPenTablet driver from XP-Pen's site.
+   - Enable Bitwarden's SSH agent, then run `ssh -o StrictHostKeyChecking=accept-new -T git@github.com`; GitHub answers `Hi <user>!`.
+   - Sign in: `gh auth login --web --git-protocol ssh --skip-ssh-key`, `claude`, `cf auth login`, `supabase login`, desktop apps.
 
 ## Tasks
 
