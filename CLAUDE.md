@@ -25,5 +25,5 @@ Agents lead development and decisions here: decide from evidence, report each de
 - Delete before adding; add nothing without a current need.
 - Installer failures stop apply, a second apply changes nothing, and new behavior gets a test.
 - Run [Verification](README.md#verification). Report implementation, checks and hardware acceptance separately.
-- Docs: what a reader needs to act and nothing else, prompt-free commands, each fact once, only what you verified.
+- Docs: what a reader needs to act and nothing else, prompt-free commands, each fact once, only what you verified. Check new prose with the humanizer skill.
 - Conventional Commits, one squash-merged PR per change. Review and merge your own PR once CI passes. English code and docs; replies in the user's language.
