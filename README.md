@@ -25,7 +25,7 @@ Windows 11 x64 dotfiles. Agents: start at [CLAUDE.md](CLAUDE.md).
    - In Windows Terminal, make PowerShell 7 the default profile and select `JetBrainsMono NFM`.
    - Install the XPPenTablet driver from XP-Pen's site.
    - Enable Bitwarden's SSH agent, then run `ssh -o StrictHostKeyChecking=accept-new -T git@github.com`; GitHub answers `Hi <user>!`.
-   - Sign in: `gh auth login --web --git-protocol ssh --skip-ssh-key`, `claude`, `cf auth login`, `supabase login`, `vercel login`, `bw login`, desktop apps.
+   - Sign in: `gh auth login --web --git-protocol ssh --skip-ssh-key`, `claude`, `cf auth login`, `supabase login`, `bw login`, desktop apps.
 
 ## Tasks
 
